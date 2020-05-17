@@ -1,21 +1,41 @@
-type Filter<TSource, TMirror> = {
-    // Allow boolean and string remapping for keys present in both types.
+type FieldMappings<TSource, TMirror> = {
+    // Allow boolean, string remapping and nested mirroring for keys present in both types.
     [P in Extract<keyof TSource, keyof TMirror>]?:
-        boolean | keyof TMirror;
+        boolean
+        | keyof TMirror
+        | FieldMappings<TSource[P], TMirror[P]>;
 } & {
     // Allow string remapping, and mapping functions for keys present only in source type.
     [P in Exclude<keyof TSource, keyof TMirror>]?:
         keyof TMirror | ((dest: TMirror, value: any, source: TSource) => void);
 }
 
-export function filterMirror<TSource extends {}, TMirror extends {}>(source: TSource, filter: Filter<TSource, TMirror>): [TSource, TMirror] {
+type CalculatedField<TSource, TMirror> = [
+    (source: TSource, dest: TMirror) => void,
+    Array<keyof TSource>
+]
+
+export function filterMirror<TSource extends {}, TMirror extends {}>(
+    source: TSource,
+    mappings: FieldMappings<TSource, TMirror>,
+    calculations?: CalculatedField<TSource, TMirror>[]
+): [TSource, TMirror] {
     type Operation = (dest: TMirror, value: any, source: TSource) => void;
 
     // TODO: need to store in here the destination properties to delete, too
-    const fieldOperations = new Map<keyof TSource, Operation>();
+    const fieldOperations = new Map<keyof TSource, Operation[]>();
 
-    for (const key of Object.keys(filter)) {
-        let filterValue = filter[key as keyof Filter<TSource, TMirror>];
+    const addOperation = (property: keyof TSource, operation: Operation) => {
+        if (fieldOperations.has(property)) {
+            fieldOperations.get(property).push(operation);
+        }
+        else {
+            fieldOperations.set(property, [operation]);
+        }
+    }
+
+    for (const key of Object.keys(mappings)) {
+        let filterValue = mappings[key as keyof FieldMappings<TSource, TMirror>];
         
         if (filterValue === false) {
             continue;
@@ -33,25 +53,44 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(source: TSo
             const destParam = filterValue as keyof TMirror;
             operation = (dest, val) => dest[destParam] = val;
         }
+        else if (typeof filterValue === 'object') {
+            operation = (dest, val, source) => {
+                const [childProxy, childMirror] = filterMirror<TSource[keyof TSource], TMirror[keyof TMirror]>(val, filterValue as FieldMappings<TSource[keyof TSource], TMirror[keyof TMirror]>);
+                source[key as keyof TSource] = childProxy;
+                dest[key as keyof TMirror] = childMirror;
+            };
+        }
         else {
             throw new Error(`Filter value has unexpected type: ${filterValue}`);
         }
 
-        fieldOperations.set(key as keyof TSource, operation);
+        addOperation(key as keyof TSource, operation);
+    }
+
+    if (calculations) {
+        for (const [operation, dependencies] of calculations) {
+            for (const dependency of dependencies) {
+                addOperation(dependency, (dest, _, source) => operation(source, dest));
+            }
+        }
     }
 
     const mirror: TMirror = {} as unknown as TMirror;
-    for (const [key, operation] of fieldOperations) {
-        operation(mirror, source[key], source)
+    for (const [key, operations] of fieldOperations) {
+        for (const operation of operations) {
+            operation(mirror, source[key], source)
+        }
     }
 
     const proxy = new Proxy(source, {
         set: (target, param: keyof TSource, val) => {
             target[param] = val;
 
-            const operation = fieldOperations.get(param);
-            if (operation) {
-                operation(mirror, val, source);
+            const operations = fieldOperations.get(param);
+            if (operations) {
+                for (const operation of operations) {
+                    operation(mirror, val, source);
+                }
             }
             
             return true;

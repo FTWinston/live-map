@@ -14,7 +14,19 @@ interface FlatMirror {
     length?: number;
 }
 
-test('copies flat object', () => {
+interface ParentSource {
+    child1: FlatSource;
+    child2: FlatSource;
+    prop: string;
+}
+
+interface ParentMirror {
+    child1: FlatMirror;
+    child2: FlatMirror;
+    prop: string;
+}
+
+test('sets up simple mapping', () => {
     const source: FlatSource = {
         prop1: 'hello',
         prop2: false,
@@ -40,7 +52,7 @@ test('copies flat object', () => {
     expect(mirror).not.toHaveProperty('prop3');
 });
 
-test('mirrors relevant property changes', () => {
+test('simple maps property changes', () => {
     const source: FlatSource = {
         prop1: 'hello',
         prop2: false,
@@ -164,3 +176,233 @@ test('function maps property changes', () => {
     expect(mirror).toHaveProperty('length');
     expect(mirror.length).toEqual(3);
 });
+
+test('sets up nested mapping', () => {
+    const source: ParentSource = {
+        child1: {
+            prop1: 'hello',
+            prop2: false,
+            prop3: 35,
+            prop4: 'hi',
+        },
+        child2: {
+            prop1: 'wow',
+            prop2: true,
+            prop3: 1,
+            prop4: 'omg',
+        },
+        prop: 'root',
+    };
+
+    const [proxy, mirror] = filterMirror<ParentSource, ParentMirror>(source, {
+        child1: {
+            prop1: true,
+            prop2: true,
+        },
+        child2: {
+            prop4: 'prop1',
+        },
+        prop: true,
+    });
+
+    expect(proxy).toHaveProperty('prop');
+    expect(proxy.prop).toEqual(source.prop);
+    expect(proxy.prop).toEqual('root');
+    
+    expect(proxy).toHaveProperty('child1');
+    expect(proxy.child1).toHaveProperty('prop1');
+    expect(proxy.child1.prop1).toEqual(source.child1.prop1);
+    expect(proxy.child1).toHaveProperty('prop2');
+    expect(proxy.child1.prop2).toEqual(source.child1.prop2);
+    expect(proxy.child1.prop2).toEqual(false);
+    expect(proxy.child1).toHaveProperty('prop3');
+    expect(proxy.child1.prop3).toEqual(source.child1.prop3);
+    expect(proxy.child1).toHaveProperty('prop4');
+    expect(proxy.child1.prop4).toEqual(source.child1.prop4);
+
+    expect(proxy).toHaveProperty('child2');
+    expect(proxy.child2).toHaveProperty('prop1');
+    expect(proxy.child2.prop1).toEqual(source.child2.prop1);
+    expect(proxy.child2).toHaveProperty('prop2');
+    expect(proxy.child2.prop2).toEqual(source.child2.prop2);
+    expect(proxy.child2).toHaveProperty('prop3');
+    expect(proxy.child2.prop3).toEqual(source.child2.prop3);
+    expect(proxy.child2).toHaveProperty('prop4');
+    expect(proxy.child2.prop4).toEqual(source.child2.prop4);
+
+
+    expect(mirror).toHaveProperty('prop');
+    expect(mirror.prop).toEqual(source.prop);
+    expect(mirror.prop).toEqual('root');
+    
+    expect(mirror).toHaveProperty('child1');
+    expect(mirror.child1).toHaveProperty('prop1');
+    expect(mirror.child1.prop1).toEqual(source.child1.prop1);
+    expect(mirror.child1).toHaveProperty('prop2');
+    expect(mirror.child1.prop2).toEqual(source.child1.prop2);
+    expect(mirror.child1).not.toHaveProperty('prop3');
+    expect(mirror.child1).not.toHaveProperty('prop4');
+
+    expect(mirror).toHaveProperty('child2');
+    expect(mirror.child2).toHaveProperty('prop1');
+    expect(mirror.child2.prop1).toEqual(source.child2.prop4);
+    expect(mirror.child2).not.toHaveProperty('prop2');
+    expect(mirror.child2).not.toHaveProperty('prop3');
+    expect(mirror.child2).not.toHaveProperty('prop4');
+});
+
+test('nested map propagates object replacement', () => {
+    // TODO THIS
+    const source: ParentSource = {
+        child1: {
+            prop1: 'hello',
+            prop2: false,
+            prop3: 35,
+            prop4: 'hi',
+        },
+        child2: {
+            prop1: 'wow',
+            prop2: true,
+            prop3: 1,
+            prop4: 'omg',
+        },
+        prop: 'root',
+    };
+
+    const [proxy, mirror] = filterMirror<ParentSource, ParentMirror>(source, {
+        child1: {
+            prop1: true,
+            prop2: true,
+        },
+        child2: {
+            prop4: 'prop1',
+        },
+        prop: true,
+    });
+
+    proxy.child1 = {
+        prop1: 'heyyy',
+        prop2: true,
+        prop3: 25,
+    };
+
+    proxy.child1.prop1 = 'x';
+
+    expect(proxy).toHaveProperty('prop');
+    expect(proxy.prop).toEqual(source.prop);
+    expect(proxy.prop).toEqual('root');
+    
+    expect(proxy).toHaveProperty('child1');
+    expect(proxy.child1).toHaveProperty('prop1');
+    expect(proxy.child1.prop1).toEqual(source.child1.prop1);
+    expect(proxy.child1.prop1).toEqual('x');
+    expect(proxy.child1).toHaveProperty('prop2');
+    expect(proxy.child1.prop2).toEqual(source.child1.prop2);
+    expect(proxy.child1.prop2).toEqual(true);
+    expect(proxy.child1).toHaveProperty('prop3');
+    expect(proxy.child1.prop3).toEqual(source.child1.prop3);
+    expect(proxy.child1.prop3).toEqual(25);
+    expect(proxy.child1).not.toHaveProperty('prop4');
+
+
+    expect(mirror).toHaveProperty('prop');
+    expect(mirror.prop).toEqual(source.prop);
+    expect(mirror.prop).toEqual('root');
+    
+    expect(mirror).toHaveProperty('child1');
+    expect(mirror.child1).toHaveProperty('prop1');
+    expect(mirror.child1.prop1).toEqual(source.child1.prop1);
+    expect(mirror.child1).toHaveProperty('prop2');
+    expect(mirror.child1.prop2).toEqual(source.child1.prop2);
+    expect(mirror.child1).not.toHaveProperty('prop3');
+    expect(mirror.child1).not.toHaveProperty('prop4');
+
+    expect(mirror).toHaveProperty('child2');
+    expect(mirror.child2).toHaveProperty('prop1');
+    expect(mirror.child2.prop1).toEqual(source.child2.prop4);
+    expect(mirror.child2).not.toHaveProperty('prop2');
+    expect(mirror.child2).not.toHaveProperty('prop3');
+    expect(mirror.child2).not.toHaveProperty('prop4');
+});
+
+test('nested maps property changes', () => {
+    const source: ParentSource = {
+        child1: {
+            prop1: 'hello',
+            prop2: false,
+            prop3: 35,
+            prop4: 'hi',
+        },
+        child2: {
+            prop1: 'wow',
+            prop2: true,
+            prop3: 1,
+            prop4: 'omg',
+        },
+        prop: 'root',
+    };
+
+    const [proxy, mirror] = filterMirror<ParentSource, ParentMirror>(source, {
+        child1: {
+            prop1: true,
+            prop2: true,
+        },
+        child2: {
+            prop4: 'prop1',
+        },
+        prop: true,
+    });
+
+    proxy.child1.prop2 = true;
+    proxy.child2.prop4 = 'hello';
+
+    expect(proxy).toHaveProperty('prop');
+    expect(proxy.prop).toEqual(source.prop);
+    expect(proxy.prop).toEqual('root');
+    
+    expect(proxy).toHaveProperty('child1');
+    expect(proxy.child1).toHaveProperty('prop1');
+    expect(proxy.child1.prop1).toEqual(source.child1.prop1);
+    expect(proxy.child1).toHaveProperty('prop2');
+    expect(proxy.child1.prop2).toEqual(source.child1.prop2);
+    expect(proxy.child1.prop2).toEqual(true);
+    expect(proxy.child1).toHaveProperty('prop3');
+    expect(proxy.child1.prop3).toEqual(source.child1.prop3);
+    expect(proxy.child1.prop3).toEqual(35);
+    expect(proxy.child1).toHaveProperty('prop4');
+    expect(proxy.child1.prop4).toEqual('hi');
+
+    expect(proxy).toHaveProperty('child2');
+    expect(proxy.child2).toHaveProperty('prop1');
+    expect(proxy.child2.prop1).toEqual(source.child2.prop1);
+    expect(proxy.child2).toHaveProperty('prop2');
+    expect(proxy.child2.prop2).toEqual(source.child2.prop2);
+    expect(proxy.child2).toHaveProperty('prop3');
+    expect(proxy.child2.prop3).toEqual(source.child2.prop3);
+    expect(proxy.child2).toHaveProperty('prop4');
+    expect(proxy.child2.prop4).toEqual(source.child2.prop4);
+
+
+    expect(mirror).toHaveProperty('prop');
+    expect(mirror.prop).toEqual(source.prop);
+    expect(mirror.prop).toEqual('root');
+    
+    expect(mirror).toHaveProperty('child1');
+    expect(mirror.child1).toHaveProperty('prop1');
+    expect(mirror.child1.prop1).toEqual(source.child1.prop1);
+    expect(mirror.child1).toHaveProperty('prop2');
+    expect(mirror.child1.prop2).toEqual(source.child1.prop2);
+    expect(mirror.child1).not.toHaveProperty('prop3');
+    expect(mirror.child1).not.toHaveProperty('prop4');
+
+    expect(mirror).toHaveProperty('child2');
+    expect(mirror.child2).toHaveProperty('prop1');
+    expect(mirror.child2.prop1).toEqual(source.child2.prop4);
+    expect(mirror.child2).not.toHaveProperty('prop2');
+    expect(mirror.child2).not.toHaveProperty('prop3');
+    expect(mirror.child2).not.toHaveProperty('prop4');
+});
+
+// TODO: test calculated fields
+
+// TODO: multi-filtering (one source, proxies give many objects out ... and can add/remove more. So some sort of manager.)
