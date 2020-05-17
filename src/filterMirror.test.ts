@@ -252,7 +252,6 @@ test('sets up nested mapping', () => {
 });
 
 test('nested map propagates object replacement', () => {
-    // TODO THIS
     const source: ParentSource = {
         child1: {
             prop1: 'hello',
@@ -402,6 +401,10 @@ test('nested maps property changes', () => {
     expect(mirror.child2).not.toHaveProperty('prop3');
     expect(mirror.child2).not.toHaveProperty('prop4');
 });
+
+// TODO: test deletion
+
+// TODO: test arrays (need special function?)
 
 // TODO: test calculated fields
 

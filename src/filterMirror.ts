@@ -22,15 +22,15 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
 ): [TSource, TMirror] {
     type Operation = (dest: TMirror, value: any, source: TSource) => void;
 
-    // TODO: need to store in here the destination properties to delete, too
-    const fieldOperations = new Map<keyof TSource, Operation[]>();
+    const setFieldOperations = new Map<keyof TSource, Operation[]>();
+    const deleteFields = new Map<keyof TSource, keyof TMirror>();
 
-    const addOperation = (property: keyof TSource, operation: Operation) => {
-        if (fieldOperations.has(property)) {
-            fieldOperations.get(property).push(operation);
+    const addSetOperation = (property: keyof TSource, operation: Operation) => {
+        if (setFieldOperations.has(property)) {
+            setFieldOperations.get(property).push(operation);
         }
         else {
-            fieldOperations.set(property, [operation]);
+            setFieldOperations.set(property, [operation]);
         }
     }
 
@@ -41,42 +41,51 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
             continue;
         }
 
-        let operation: Operation;
+        let setOperation: Operation;
+        let deleteField: keyof TMirror | undefined;
 
         if (filterValue === true) {
-            operation = (dest, val) => dest[key as keyof TMirror] = val;
+            const destField = key as keyof TMirror;
+            setOperation = (dest, val) => dest[destField] = val;
+            deleteField = destField;
         }
         else if (typeof filterValue === 'function') {
-            operation = filterValue as Operation;
+            setOperation = filterValue as Operation;
         }
         else if (typeof filterValue === 'string' || typeof filterValue === 'number' || typeof filterValue === 'symbol') {
-            const destParam = filterValue as keyof TMirror;
-            operation = (dest, val) => dest[destParam] = val;
+            const destField = filterValue as keyof TMirror;
+            setOperation = (dest, val) => dest[destField] = val;
+            deleteField = destField;
         }
         else if (typeof filterValue === 'object') {
-            operation = (dest, val, source) => {
+            const destField = key as keyof TMirror;
+            setOperation = (dest, val, source) => {
                 const [childProxy, childMirror] = filterMirror<TSource[keyof TSource], TMirror[keyof TMirror]>(val, filterValue as FieldMappings<TSource[keyof TSource], TMirror[keyof TMirror]>);
                 source[key as keyof TSource] = childProxy;
-                dest[key as keyof TMirror] = childMirror;
+                dest[destField] = childMirror;
             };
+            deleteField = destField;
         }
         else {
             throw new Error(`Filter value has unexpected type: ${filterValue}`);
         }
 
-        addOperation(key as keyof TSource, operation);
+        addSetOperation(key as keyof TSource, setOperation);
+        if (deleteField !== undefined) {
+            deleteFields.set(key as keyof TSource, deleteField);
+        }
     }
 
     if (calculations) {
         for (const [operation, dependencies] of calculations) {
             for (const dependency of dependencies) {
-                addOperation(dependency, (dest, _, source) => operation(source, dest));
+                addSetOperation(dependency, (dest, _, source) => operation(source, dest));
             }
         }
     }
 
     const mirror: TMirror = {} as unknown as TMirror;
-    for (const [key, operations] of fieldOperations) {
+    for (const [key, operations] of setFieldOperations) {
         for (const operation of operations) {
             operation(mirror, source[key], source)
         }
@@ -86,7 +95,7 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
         set: (target, param: keyof TSource, val) => {
             target[param] = val;
 
-            const operations = fieldOperations.get(param);
+            const operations = setFieldOperations.get(param);
             if (operations) {
                 for (const operation of operations) {
                     operation(mirror, val, source);
@@ -98,8 +107,8 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
         deleteProperty: (target, param: keyof TSource) => {
             delete target[param];
 
-            if (fieldOperations.has(param)) {
-                //delete mirror[param];
+            if (deleteFields.has(param)) {
+                delete mirror[deleteFields.get(param)];
             }
 
             return true;
