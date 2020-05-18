@@ -12,6 +12,7 @@ interface FlatMirror {
     prop1: string;
     prop2: boolean;
     length?: number;
+    array?: string[];
 }
 
 interface ParentSource {
@@ -462,7 +463,38 @@ test('maps property deletion', () => {
     expect(mirror.child2).not.toHaveProperty('prop4');
 });
 
-// TODO: test arrays (need special function?)
+
+test('maps array changes', () => {
+    const source: FlatSource = {
+        prop1: 'hello',
+        prop2: false,
+        prop3: 35,
+        array: ['a', 'b'],
+    };
+
+    const [proxy, mirror] = filterMirror<FlatSource, FlatMirror>(source, {
+        prop1: true,
+        array: true,
+    });
+
+    proxy.array.push('c');
+
+    expect(proxy).toHaveProperty('prop1');
+    expect(proxy.prop1).toEqual(source.prop1);
+    expect(proxy).toHaveProperty('array');
+    expect(proxy.array).toHaveLength(3);
+
+    expect(mirror).toHaveProperty('prop1');
+    expect(mirror.prop1).toEqual(source.prop1);
+    expect(mirror).toHaveProperty('array');
+    expect(mirror.array).toHaveLength(3);
+
+    // TODO: determine if we care that this is THE SAME array rather than a copy?
+    expect(proxy.array).toBe(mirror.array);
+    expect(source.array).toBe(mirror.array);
+});
+
+// TODO: test filtered arrays (need special function?)
 
 // TODO: test records (objects with any old keys ... need special function?)
 
