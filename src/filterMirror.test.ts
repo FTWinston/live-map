@@ -402,7 +402,66 @@ test('nested maps property changes', () => {
     expect(mirror.child2).not.toHaveProperty('prop4');
 });
 
-// TODO: test deletion
+test('maps property deletion', () => {
+    const source: ParentSource = {
+        child1: {
+            prop1: 'hello',
+            prop2: false,
+            prop3: 35,
+            prop4: 'hi',
+        },
+        child2: {
+            prop1: 'wow',
+            prop2: true,
+            prop3: 1,
+            prop4: 'omg',
+        },
+        prop: 'root',
+    };
+
+    const [proxy, mirror] = filterMirror<ParentSource, ParentMirror>(source, {
+        child1: {
+            prop1: true,
+            prop2: true,
+        },
+        child2: {
+            prop4: 'prop1',
+        },
+        prop: true,
+    });
+
+    delete proxy.child1;
+    delete proxy.child2.prop4;
+    
+    expect(proxy).toHaveProperty('prop');
+    expect(proxy.prop).toEqual(source.prop);
+    expect(proxy.prop).toEqual('root');
+    
+    expect(proxy).not.toHaveProperty('child1');
+
+    expect(proxy).toHaveProperty('child2');
+    expect(proxy.child2).toHaveProperty('prop1');
+    expect(proxy.child2.prop1).toEqual(source.child2.prop1);
+    expect(proxy.child2).toHaveProperty('prop2');
+    expect(proxy.child2.prop2).toEqual(source.child2.prop2);
+    expect(proxy.child2).toHaveProperty('prop3');
+    expect(proxy.child2.prop3).toEqual(source.child2.prop3);
+    expect(proxy.child2).not.toHaveProperty('prop4');
+
+
+    expect(mirror).toHaveProperty('prop');
+    expect(mirror.prop).toEqual(source.prop);
+    expect(mirror.prop).toEqual('root');
+    
+    expect(mirror).not.toHaveProperty('child1');
+
+    expect(mirror).toHaveProperty('child2');
+    expect(mirror.child2).not.toHaveProperty('prop1');
+    expect(mirror.child2).not.toHaveProperty('prop2');
+    expect(mirror.child2).not.toHaveProperty('prop3');
+    expect(mirror.child2).not.toHaveProperty('prop4');
+});
+
 
 // TODO: test arrays (need special function?)
 
