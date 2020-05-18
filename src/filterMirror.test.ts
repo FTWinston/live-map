@@ -462,7 +462,8 @@ test('maps property deletion', () => {
     expect(mirror.child2).not.toHaveProperty('prop4');
 });
 
-
 // TODO: test arrays (need special function?)
+
+// TODO: test records (objects with any old keys ... need special function?)
 
 // TODO: multi-filtering (one source, proxies give many objects out ... and can add/remove more. So some sort of manager.)

@@ -1,3 +1,5 @@
+type FieldMappingFunction<TSource, TMirror> = (dest: TMirror, value: any, source: TSource) => void;
+
 type FieldMappings<TSource, TMirror> = {
     // Allow boolean, string remapping and nested mirroring for keys present in both types.
     [P in Extract<keyof TSource, keyof TMirror>]?:
@@ -7,7 +9,7 @@ type FieldMappings<TSource, TMirror> = {
 } & {
     // Allow string remapping, and mapping functions for keys present only in source type.
     [P in Exclude<keyof TSource, keyof TMirror>]?:
-        keyof TMirror | ((dest: TMirror, value: any, source: TSource) => void);
+        keyof TMirror | FieldMappingFunction<TSource, TMirror>;
 }
 
 export function filterMirror<TSource extends {}, TMirror extends {}>(
