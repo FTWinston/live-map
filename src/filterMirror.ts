@@ -10,15 +10,9 @@ type FieldMappings<TSource, TMirror> = {
         keyof TMirror | ((dest: TMirror, value: any, source: TSource) => void);
 }
 
-type CalculatedField<TSource, TMirror> = [
-    (source: TSource, dest: TMirror) => void,
-    Array<keyof TSource>
-]
-
 export function filterMirror<TSource extends {}, TMirror extends {}>(
     source: TSource,
-    mappings: FieldMappings<TSource, TMirror>,
-    calculations?: CalculatedField<TSource, TMirror>[]
+    mappings: FieldMappings<TSource, TMirror>
 ): [TSource, TMirror] {
     type Operation = (dest: TMirror, value: any, source: TSource) => void;
 
@@ -73,14 +67,6 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
         addSetOperation(key as keyof TSource, setOperation);
         if (deleteField !== undefined) {
             deleteFields.set(key as keyof TSource, deleteField);
-        }
-    }
-
-    if (calculations) {
-        for (const [operation, dependencies] of calculations) {
-            for (const dependency of dependencies) {
-                addSetOperation(dependency, (dest, _, source) => operation(source, dest));
-            }
         }
     }
 

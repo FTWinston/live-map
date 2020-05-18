@@ -465,6 +465,4 @@ test('maps property deletion', () => {
 
 // TODO: test arrays (need special function?)
 
-// TODO: test calculated fields
-
 // TODO: multi-filtering (one source, proxies give many objects out ... and can add/remove more. So some sort of manager.)
