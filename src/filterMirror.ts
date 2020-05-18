@@ -6,11 +6,18 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
     source: TSource,
     mappings: FieldMappings<TSource, TMirror>
 ): [TSource, TMirror] {
-    const mapping = new Mapping<TSource, TMirror>(mappings);
+    const mapping = new Mapping<TSource, TMirror, string>(
+        source,
+        () => mappings
+    );
 
-    const { mirror, setField, deleteField } = mapping.createMirror(source);
+    const mirror = mapping.createMirror('');
 
-    const proxy = createProxy(source, setField, deleteField);
+    const proxy = createProxy(
+        source,
+        (param, val) => mapping.setField(param, val),
+        (param) => mapping.deleteField(param)
+    );
 
     return [proxy, mirror];
 }

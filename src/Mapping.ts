@@ -1,20 +1,38 @@
 import { FieldMappings } from './FieldMappings';
 import { filterMirror } from './filterMirror';
 
-type Operation<TSource, TMirror> = (
+type SetOperation<TSource, TMirror> = (
     dest: TMirror,
     value: any,
     source: TSource
 ) => void;
 
-export class Mapping<TSource, TMirror> {
-    private readonly setFieldOperations = new Map<
-        keyof TSource,
-        Operation<TSource, TMirror>[]
-    >();
-    private readonly deleteFields = new Map<keyof TSource, keyof TMirror>();
+interface MirrorData<TSource, TMirror> {
+    mirror: TMirror;
+    setFieldOperations: Map<keyof TSource, SetOperation<TSource, TMirror>[]>;
+    deleteFields: Map<keyof TSource, keyof TMirror>;
+}
 
-    constructor(mappings: FieldMappings<TSource, TMirror>) {
+export class Mapping<TSource, TMirror, TKey> {
+    private readonly mirrorData = new Map<TKey, MirrorData<TSource, TMirror>>();
+
+    constructor(
+        private readonly source: TSource,
+        private readonly getMappings: (
+            key: TKey
+        ) => FieldMappings<TSource, TMirror>
+    ) {}
+
+    public createMirror(key: TKey) {
+        const setFieldOperations = new Map<
+            keyof TSource,
+            SetOperation<TSource, TMirror>[]
+        >();
+
+        const deleteFields = new Map<keyof TSource, keyof TMirror>();
+
+        const mappings = this.getMappings(key);
+
         for (const key of Object.keys(mappings)) {
             let filterValue =
                 mappings[key as keyof FieldMappings<TSource, TMirror>];
@@ -23,7 +41,7 @@ export class Mapping<TSource, TMirror> {
                 continue;
             }
 
-            let setOperation: Operation<TSource, TMirror>;
+            let setOperation: SetOperation<TSource, TMirror>;
             let deleteField: keyof TMirror | undefined;
 
             if (filterValue === true) {
@@ -56,65 +74,72 @@ export class Mapping<TSource, TMirror> {
                 };
                 deleteField = destField;
             } else if (typeof filterValue === 'function') {
-                setOperation = filterValue as Operation<TSource, TMirror>;
+                setOperation = filterValue as SetOperation<TSource, TMirror>;
             } else {
                 throw new Error(
                     `Filter value has unexpected type: ${filterValue}`
                 );
             }
 
-            this.addSetOperation(key as keyof TSource, setOperation);
+            const existing = setFieldOperations.get(key as keyof TSource);
+
+            if (existing) {
+                existing.push(setOperation);
+            } else {
+                setFieldOperations.set(key as keyof TSource, [setOperation]);
+            }
+
             if (deleteField !== undefined) {
-                this.deleteFields.set(key as keyof TSource, deleteField);
+                deleteFields.set(key as keyof TSource, deleteField);
+            }
+        }
+
+        const mirror: TMirror = ({} as unknown) as TMirror;
+
+        for (const [param, operations] of setFieldOperations) {
+            for (const operation of operations) {
+                operation(mirror, this.source[param], this.source);
+            }
+        }
+
+        this.mirrorData.set(key, {
+            mirror,
+            setFieldOperations,
+            deleteFields,
+        });
+
+        return mirror;
+    }
+
+    public deleteMirror(key: TKey) {
+        this.mirrorData.delete(key);
+    }
+
+    public setField(param: keyof TSource, val: TSource[keyof TSource]) {
+        for (const [, { mirror, setFieldOperations }] of this.mirrorData) {
+            const operations = setFieldOperations.get(param);
+            if (operations) {
+                for (const operation of operations) {
+                    operation(mirror, val, this.source);
+                }
             }
         }
     }
 
-    public createMirror(source: TSource) {
-        const mirror: TMirror = ({} as unknown) as TMirror;
-
-        for (const [key, operations] of this.setFieldOperations) {
-            for (const operation of operations) {
-                operation(mirror, source[key], source);
-            }
-        }
-
-        const setField = (
-            param: keyof TSource,
-            val: TSource[keyof TSource]
-        ) => {
-            const operations = this.setFieldOperations.get(param);
-            if (operations) {
-                for (const operation of operations) {
-                    operation(mirror, val, source);
-                }
-            }
-        };
-
-        const deleteField = (param: keyof TSource) => {
-            const field = this.deleteFields.get(param);
+    public deleteField(param: keyof TSource) {
+        for (const [, { mirror, deleteFields }] of this.mirrorData) {
+            const field = deleteFields.get(param);
             if (field !== undefined) {
                 delete mirror[field];
             }
-        };
-
-        return {
-            mirror,
-            setField,
-            deleteField,
-        };
+        }
     }
 
-    private addSetOperation(
-        property: keyof TSource,
-        operation: Operation<TSource, TMirror>
-    ) {
-        const existing = this.setFieldOperations.get(property);
+    public substituteMirror(key: TKey, mirror: TMirror) {
+        const data = this.mirrorData.get(key);
 
-        if (existing) {
-            existing.push(operation);
-        } else {
-            this.setFieldOperations.set(property, [operation]);
+        if (data) {
+            data.mirror = mirror;
         }
     }
 }
