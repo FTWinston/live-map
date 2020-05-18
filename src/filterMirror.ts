@@ -1,4 +1,5 @@
 import { FieldMappings } from './FieldMappings';
+import { createProxy } from './createProxy';
 
 export function filterMirror<TSource extends {}, TMirror extends {}>(
     source: TSource,
@@ -33,9 +34,6 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
             setOperation = (dest, val) => dest[destField] = val;
             deleteField = destField;
         }
-        else if (typeof filterValue === 'function') {
-            setOperation = filterValue as Operation;
-        }
         else if (typeof filterValue === 'string' || typeof filterValue === 'number' || typeof filterValue === 'symbol') {
             const destField = filterValue as keyof TMirror;
             setOperation = (dest, val) => dest[destField] = val;
@@ -49,6 +47,9 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
                 dest[destField] = childMirror;
             };
             deleteField = destField;
+        }
+        else if (typeof filterValue === 'function') {
+            setOperation = filterValue as Operation;
         }
         else {
             throw new Error(`Filter value has unexpected type: ${filterValue}`);
@@ -67,29 +68,22 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
         }
     }
 
-    const proxy = new Proxy(source, {
-        set: (target, param: keyof TSource, val) => {
-            target[param] = val;
-
-            const operations = setFieldOperations.get(param);
-            if (operations) {
-                for (const operation of operations) {
-                    operation(mirror, val, source);
-                }
+    const setField = (param: keyof TSource, val: TSource[keyof TSource]) => {
+        const operations = setFieldOperations.get(param);
+        if (operations) {
+            for (const operation of operations) {
+                operation(mirror, val, source);
             }
-            
-            return true;
-        },
-        deleteProperty: (target, param: keyof TSource) => {
-            delete target[param];
-
-            if (deleteFields.has(param)) {
-                delete mirror[deleteFields.get(param)];
-            }
-
-            return true;
         }
-    });
+    }
+
+    const deleteField = (param: keyof TSource) => {
+        if (deleteFields.has(param)) {
+            delete mirror[deleteFields.get(param)];
+        }
+    }
+    
+    const proxy = createProxy(source, setField, deleteField);
 
     return [proxy, mirror];
 }
