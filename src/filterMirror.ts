@@ -1,5 +1,5 @@
-import { FieldMappings } from './FieldMappings';
 import { createProxy } from './createProxy';
+import { FieldMappings } from './FieldMappings';
 import { Mapping } from './Mapping';
 
 export function filterMirror<TSource extends {}, TMirror extends {}>(
@@ -9,7 +9,7 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
     const mapping = new Mapping<TSource, TMirror>(mappings);
 
     const { mirror, setField, deleteField } = mapping.createMirror(source);
-    
+
     const proxy = createProxy(source, setField, deleteField);
 
     return [proxy, mirror];

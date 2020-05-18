@@ -100,7 +100,7 @@ test('sets up string mapping', () => {
     expect(proxy).toHaveProperty('prop1');
     expect(proxy.prop1).toEqual(source.prop1);
     expect(proxy.prop1).toEqual('hello');
-    
+
     expect(mirror).toHaveProperty('prop1');
     expect(mirror.prop1).toEqual(proxy.prop4);
     expect(mirror.prop1).toEqual('hi');
@@ -124,7 +124,7 @@ test('string maps property changes', () => {
     expect(proxy).toHaveProperty('prop1');
     expect(proxy.prop1).toEqual(source.prop1);
     expect(proxy.prop1).toEqual('howdy');
-    
+
     expect(mirror).toHaveProperty('prop1');
     expect(mirror.prop1).toEqual(proxy.prop4);
     expect(mirror.prop1).toEqual('bye');
@@ -140,14 +140,14 @@ test('sets up function mapping', () => {
     };
 
     const [proxy, mirror] = filterMirror<FlatSource, FlatMirror>(source, {
-        array: (dest, val) => dest.length = val.length,
+        array: (dest, val) => (dest.length = val.length),
     });
 
     expect(proxy).toHaveProperty('array');
     expect(proxy.array).toHaveLength(2);
     expect(proxy.array[0]).toEqual('blah');
     expect(proxy.array[1]).toEqual('blabber');
-    
+
     expect(mirror).toHaveProperty('length');
     expect(mirror.length).toEqual(2);
 });
@@ -162,7 +162,7 @@ test('function maps property changes', () => {
     };
 
     const [proxy, mirror] = filterMirror<FlatSource, FlatMirror>(source, {
-        array: (dest, val) => dest.length = val.length,
+        array: (dest, val) => (dest.length = val.length),
     });
 
     // TODO: what if we mutate the array, though? That needs something more complicated...
@@ -173,7 +173,7 @@ test('function maps property changes', () => {
     expect(proxy.array[0]).toEqual('hi');
     expect(proxy.array[1]).toEqual('de');
     expect(proxy.array[2]).toEqual('hey');
-    
+
     expect(mirror).toHaveProperty('length');
     expect(mirror.length).toEqual(3);
 });
@@ -209,7 +209,7 @@ test('sets up nested mapping', () => {
     expect(proxy).toHaveProperty('prop');
     expect(proxy.prop).toEqual(source.prop);
     expect(proxy.prop).toEqual('root');
-    
+
     expect(proxy).toHaveProperty('child1');
     expect(proxy.child1).toHaveProperty('prop1');
     expect(proxy.child1.prop1).toEqual(source.child1.prop1);
@@ -231,11 +231,10 @@ test('sets up nested mapping', () => {
     expect(proxy.child2).toHaveProperty('prop4');
     expect(proxy.child2.prop4).toEqual(source.child2.prop4);
 
-
     expect(mirror).toHaveProperty('prop');
     expect(mirror.prop).toEqual(source.prop);
     expect(mirror.prop).toEqual('root');
-    
+
     expect(mirror).toHaveProperty('child1');
     expect(mirror.child1).toHaveProperty('prop1');
     expect(mirror.child1.prop1).toEqual(source.child1.prop1);
@@ -291,7 +290,7 @@ test('nested map propagates object replacement', () => {
     expect(proxy).toHaveProperty('prop');
     expect(proxy.prop).toEqual(source.prop);
     expect(proxy.prop).toEqual('root');
-    
+
     expect(proxy).toHaveProperty('child1');
     expect(proxy.child1).toHaveProperty('prop1');
     expect(proxy.child1.prop1).toEqual(source.child1.prop1);
@@ -304,11 +303,10 @@ test('nested map propagates object replacement', () => {
     expect(proxy.child1.prop3).toEqual(25);
     expect(proxy.child1).not.toHaveProperty('prop4');
 
-
     expect(mirror).toHaveProperty('prop');
     expect(mirror.prop).toEqual(source.prop);
     expect(mirror.prop).toEqual('root');
-    
+
     expect(mirror).toHaveProperty('child1');
     expect(mirror.child1).toHaveProperty('prop1');
     expect(mirror.child1.prop1).toEqual(source.child1.prop1);
@@ -359,7 +357,7 @@ test('nested maps property changes', () => {
     expect(proxy).toHaveProperty('prop');
     expect(proxy.prop).toEqual(source.prop);
     expect(proxy.prop).toEqual('root');
-    
+
     expect(proxy).toHaveProperty('child1');
     expect(proxy.child1).toHaveProperty('prop1');
     expect(proxy.child1.prop1).toEqual(source.child1.prop1);
@@ -382,11 +380,10 @@ test('nested maps property changes', () => {
     expect(proxy.child2).toHaveProperty('prop4');
     expect(proxy.child2.prop4).toEqual(source.child2.prop4);
 
-
     expect(mirror).toHaveProperty('prop');
     expect(mirror.prop).toEqual(source.prop);
     expect(mirror.prop).toEqual('root');
-    
+
     expect(mirror).toHaveProperty('child1');
     expect(mirror.child1).toHaveProperty('prop1');
     expect(mirror.child1.prop1).toEqual(source.child1.prop1);
@@ -433,11 +430,11 @@ test('maps property deletion', () => {
 
     delete proxy.child1;
     delete proxy.child2.prop4;
-    
+
     expect(proxy).toHaveProperty('prop');
     expect(proxy.prop).toEqual(source.prop);
     expect(proxy.prop).toEqual('root');
-    
+
     expect(proxy).not.toHaveProperty('child1');
 
     expect(proxy).toHaveProperty('child2');
@@ -449,11 +446,10 @@ test('maps property deletion', () => {
     expect(proxy.child2.prop3).toEqual(source.child2.prop3);
     expect(proxy.child2).not.toHaveProperty('prop4');
 
-
     expect(mirror).toHaveProperty('prop');
     expect(mirror.prop).toEqual(source.prop);
     expect(mirror.prop).toEqual('root');
-    
+
     expect(mirror).not.toHaveProperty('child1');
 
     expect(mirror).toHaveProperty('child2');
@@ -462,7 +458,6 @@ test('maps property deletion', () => {
     expect(mirror.child2).not.toHaveProperty('prop3');
     expect(mirror.child2).not.toHaveProperty('prop4');
 });
-
 
 test('maps array changes', () => {
     const source: FlatSource = {
