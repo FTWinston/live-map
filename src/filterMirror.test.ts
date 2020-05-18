@@ -496,6 +496,6 @@ test('maps array changes', () => {
 
 // TODO: test filtered arrays (need special function?)
 
-// TODO: test records (objects with any old keys ... need special function?)
+// TODO: test records (objects with any old keys, where we apply filtering to the keys themselves ... need special function? or can we just have a "*" in our filter function?)
 
 // TODO: multi-filtering (one source, proxies give many objects out ... and can add/remove more. So some sort of manager.)
