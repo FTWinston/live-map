@@ -111,7 +111,7 @@ export class Mapping<TSource, TMirror, TKey> {
         return mirror;
     }
 
-    public deleteMirror(key: TKey) {
+    public removeMirror(key: TKey) {
         this.mirrorData.delete(key);
     }
 

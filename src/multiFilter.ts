@@ -9,7 +9,7 @@ export function multiFilter<TSource extends {}, TMirror extends {}, TKey>(
     const mapping = new Mapping<TSource, TMirror, TKey>(source, getMappings);
 
     const createMirror = (key: TKey) => mapping.createMirror(key);
-    const deleteMirror = (key: TKey) => mapping.deleteMirror(key);
+    const removeMirror = (key: TKey) => mapping.removeMirror(key);
     const substituteMirror = (key: TKey, mirror: TMirror) =>
         mapping.substituteMirror(key, mirror);
 
@@ -19,5 +19,5 @@ export function multiFilter<TSource extends {}, TMirror extends {}, TKey>(
         (param) => mapping.deleteField(param)
     );
 
-    return [proxy, createMirror, deleteMirror, substituteMirror];
+    return [proxy, createMirror, removeMirror, substituteMirror];
 }
