@@ -34,7 +34,7 @@ test('sets up simple mapping', () => {
         prop3: 35,
     };
 
-    const [proxy, mirror] = filterMirror<FlatSource, FlatMirror>(source, {
+    const { proxy, mirror } = filterMirror<FlatSource, FlatMirror>(source, {
         prop1: true,
         prop2: true,
     });
@@ -60,7 +60,7 @@ test('simple maps property changes', () => {
         prop3: 35,
     };
 
-    const [proxy, mirror] = filterMirror<FlatSource, FlatMirror>(source, {
+    const { proxy, mirror } = filterMirror<FlatSource, FlatMirror>(source, {
         prop1: true,
         prop2: true,
     });
@@ -93,7 +93,7 @@ test('sets up string mapping', () => {
         prop4: 'hi',
     };
 
-    const [proxy, mirror] = filterMirror<FlatSource, FlatMirror>(source, {
+    const { proxy, mirror } = filterMirror<FlatSource, FlatMirror>(source, {
         prop4: 'prop1',
     });
 
@@ -114,7 +114,7 @@ test('string maps property changes', () => {
         prop4: 'hi',
     };
 
-    const [proxy, mirror] = filterMirror<FlatSource, FlatMirror>(source, {
+    const { proxy, mirror } = filterMirror<FlatSource, FlatMirror>(source, {
         prop4: 'prop1',
     });
 
@@ -139,7 +139,7 @@ test('sets up function mapping', () => {
         array: ['blah', 'blabber'],
     };
 
-    const [proxy, mirror] = filterMirror<FlatSource, FlatMirror>(source, {
+    const { proxy, mirror } = filterMirror<FlatSource, FlatMirror>(source, {
         array: (dest, val) => (dest.length = val.length),
     });
 
@@ -161,7 +161,7 @@ test('function maps property changes', () => {
         array: ['blah', 'blabber'],
     };
 
-    const [proxy, mirror] = filterMirror<FlatSource, FlatMirror>(source, {
+    const { proxy, mirror } = filterMirror<FlatSource, FlatMirror>(source, {
         array: (dest, val) => (dest.length = val.length),
     });
 
@@ -195,7 +195,7 @@ test('sets up nested mapping', () => {
         prop: 'root',
     };
 
-    const [proxy, mirror] = filterMirror<ParentSource, ParentMirror>(source, {
+    const { proxy, mirror } = filterMirror<ParentSource, ParentMirror>(source, {
         child1: {
             prop1: true,
             prop2: true,
@@ -268,7 +268,7 @@ test('nested map propagates object replacement', () => {
         prop: 'root',
     };
 
-    const [proxy, mirror] = filterMirror<ParentSource, ParentMirror>(source, {
+    const { proxy, mirror } = filterMirror<ParentSource, ParentMirror>(source, {
         child1: {
             prop1: true,
             prop2: true,
@@ -340,7 +340,7 @@ test('nested maps property changes', () => {
         prop: 'root',
     };
 
-    const [proxy, mirror] = filterMirror<ParentSource, ParentMirror>(source, {
+    const { proxy, mirror } = filterMirror<ParentSource, ParentMirror>(source, {
         child1: {
             prop1: true,
             prop2: true,
@@ -417,7 +417,7 @@ test('maps property deletion', () => {
         prop: 'root',
     };
 
-    const [proxy, mirror] = filterMirror<ParentSource, ParentMirror>(source, {
+    const { proxy, mirror } = filterMirror<ParentSource, ParentMirror>(source, {
         child1: {
             prop1: true,
             prop2: true,
@@ -467,7 +467,7 @@ test('maps array changes', () => {
         array: ['a', 'b'],
     };
 
-    const [proxy, mirror] = filterMirror<FlatSource, FlatMirror>(source, {
+    const { proxy, mirror } = filterMirror<FlatSource, FlatMirror>(source, {
         prop1: true,
         array: true,
     });

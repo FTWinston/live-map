@@ -59,7 +59,10 @@ export class Mapping<TSource, TMirror, TKey> {
             } else if (typeof filterValue === 'object') {
                 const destField = key as keyof TMirror;
                 setOperation = (dest, val, source) => {
-                    const [childProxy, childMirror] = filterMirror<
+                    const {
+                        proxy: childProxy,
+                        mirror: childMirror,
+                    } = filterMirror<
                         TSource[keyof TSource],
                         TMirror[keyof TMirror]
                     >(

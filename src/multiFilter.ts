@@ -19,5 +19,10 @@ export function multiFilter<TSource extends {}, TMirror extends {}, TKey>(
         (param) => mapping.deleteField(param)
     );
 
-    return [proxy, createMirror, removeMirror, substituteMirror];
+    return {
+        proxy,
+        createMirror,
+        removeMirror,
+        substituteMirror,
+    };
 }

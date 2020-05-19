@@ -5,7 +5,7 @@ import { Mapping } from './Mapping';
 export function filterMirror<TSource extends {}, TMirror extends {}>(
     source: TSource,
     mappings: FieldMappings<TSource, TMirror>
-): [TSource, TMirror] {
+) {
     const mapping = new Mapping<TSource, TMirror, string>(
         source,
         () => mappings
@@ -19,5 +19,8 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
         (param) => mapping.deleteField(param)
     );
 
-    return [proxy, mirror];
+    return {
+        proxy,
+        mirror,
+    };
 }
