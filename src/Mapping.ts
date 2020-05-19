@@ -63,28 +63,21 @@ export class Mapping<TSource, TMirror, TKey> {
             }
         }
 
-        const mirror: TMirror = ({} as unknown) as TMirror;
-
-        let anyOtherSet: FieldOperation<TSource, TMirror> | undefined;
-        let anyOtherDelete: FieldOperation<TSource, TMirror> | undefined;
-
         const anyOtherValue: AnyOtherMapping<
             TSource,
             TMirror
         > = (mappings as any)[anyOtherFields];
+
+        let anyOtherSet: FieldOperation<TSource, TMirror> | undefined;
+        let anyOtherDelete: FieldOperation<TSource, TMirror> | undefined;
+
         if (anyOtherValue !== undefined && anyOtherValue !== false) {
-            [anyOtherSet] = this.parseFieldMapping(anyOtherValue);
-
-            // Fields mapped via anyOtherField can only go to a destination field with the same name, so deleting is straightforward.
-            anyOtherDelete = (_source, key, dest) => {
-                const destKey = (key as unknown) as keyof TMirror;
-                delete dest[destKey];
-            };
+            [anyOtherSet, anyOtherDelete] = this.parseFieldMapping(
+                anyOtherValue
+            );
         }
 
-        for (const [field, operation] of setOperations) {
-            operation(this.source, field, mirror);
-        }
+        const mirror = this.populateNewMirror(setOperations, anyOtherSet);
 
         this.mirrorData.set(key, {
             mirror,
@@ -93,6 +86,19 @@ export class Mapping<TSource, TMirror, TKey> {
             anyOtherSet,
             anyOtherDelete,
         });
+
+        return mirror;
+    }
+
+    private populateNewMirror(
+        setOperations: Map<keyof TSource, FieldOperation<TSource, TMirror>>,
+        anyOtherSet: FieldOperation<TSource, TMirror>
+    ) {
+        const mirror = ({} as unknown) as TMirror;
+
+        for (const field in this.source) {
+            this.runOperation(field, mirror, setOperations, anyOtherSet);
+        }
 
         return mirror;
     }
@@ -162,20 +168,30 @@ export class Mapping<TSource, TMirror, TKey> {
     }
 
     public setField(field: keyof TSource, val: TSource[keyof TSource]) {
-        for (const [, { mirror, setOperations }] of this.mirrorData) {
-            const operation = setOperations.get(field);
-            if (operation) {
-                operation(this.source, field, mirror);
-            }
+        for (const [, { mirror, setOperations, anyOtherSet }] of this
+            .mirrorData) {
+            this.runOperation(field, mirror, setOperations, anyOtherSet);
         }
     }
 
     public deleteField(field: keyof TSource) {
-        for (const [, { mirror, deleteOperations }] of this.mirrorData) {
-            const operation = deleteOperations.get(field);
-            if (operation !== undefined) {
-                operation(this.source, field, mirror);
-            }
+        for (const [, { mirror, deleteOperations, anyOtherDelete }] of this
+            .mirrorData) {
+            this.runOperation(field, mirror, deleteOperations, anyOtherDelete);
+        }
+    }
+
+    private runOperation(
+        field: keyof TSource,
+        mirror: TMirror,
+        operations: Map<keyof TSource, FieldOperation<TSource, TMirror>>,
+        fallback?: FieldOperation<TSource, TMirror>
+    ) {
+        const operation = operations.get(field);
+        if (operation) {
+            operation(this.source, field, mirror);
+        } else if (fallback) {
+            fallback(this.source, field, mirror);
         }
     }
 
