@@ -140,7 +140,7 @@ test('sets up function mapping', () => {
     };
 
     const { proxy, mirror } = filterMirror<FlatSource, FlatMirror>(source, {
-        array: (dest, val) => (dest.length = val.length),
+        array: (val, dest) => (dest.length = val.length),
     });
 
     expect(proxy).toHaveProperty('array');
@@ -162,7 +162,7 @@ test('function maps property changes', () => {
     };
 
     const { proxy, mirror } = filterMirror<FlatSource, FlatMirror>(source, {
-        array: (dest, val) => (dest.length = val.length),
+        array: (val, dest) => (dest.length = val.length),
     });
 
     // TODO: what if we mutate the array, though? That needs something more complicated...
@@ -489,8 +489,6 @@ test('maps array changes', () => {
     expect(source.array).toBe(mirror.array);
 });
 
-// TODO: test filtered arrays (need special function?)
+// TODO: test anyOtherField
 
-// TODO: test records (objects with any old keys, where we apply filtering to the keys themselves ... need special function? or can we just have a "*" in our filter function?)
-
-// TODO: multi-filtering (one source, proxies give many objects out ... and can add/remove more. So some sort of manager.)
+// TODO: test multiFilter

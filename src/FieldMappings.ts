@@ -1,8 +1,20 @@
+export const anyOtherFields = Symbol('*');
+
 type FieldMappingFunction<TSource, TMirror> = (
-    dest: TMirror,
     value: any,
+    dest: TMirror,
     source: TSource
 ) => void;
+
+// For all other fields, only allow boolean or nested mirroring.
+export type AnyOtherMapping<TSource, TMirror> =
+    | boolean
+    | FieldMappings<TSource[keyof TSource], TMirror[keyof TMirror]>;
+
+export type FieldMapping<TSource, TMirror> =
+    | AnyOtherMapping<TSource, TMirror>
+    | keyof TMirror
+    | FieldMappingFunction<TSource, TMirror>;
 
 export type FieldMappings<TSource, TMirror> = {
     // Allow boolean, string remapping, nested mirroring and mapping functions for keys present in both types.
@@ -17,4 +29,6 @@ export type FieldMappings<TSource, TMirror> = {
         [P in Exclude<keyof TSource, keyof TMirror>]?:
             | keyof TMirror
             | FieldMappingFunction<TSource, TMirror>;
+    } & {
+        [anyOtherFields]?: AnyOtherMapping<TSource, TMirror>;
     };

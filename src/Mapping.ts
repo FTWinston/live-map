@@ -1,16 +1,23 @@
-import { FieldMappings } from './FieldMappings';
+import {
+    FieldMapping,
+    FieldMappings,
+    anyOtherFields,
+    AnyOtherMapping,
+} from './FieldMappings';
 import { filterMirror } from './filterMirror';
 
-type SetOperation<TSource, TMirror> = (
-    dest: TMirror,
-    value: any,
-    source: TSource
+type FieldOperation<TSource, TMirror> = (
+    source: TSource,
+    field: keyof TSource,
+    dest: TMirror
 ) => void;
 
 interface MirrorData<TSource, TMirror> {
     mirror: TMirror;
-    setFieldOperations: Map<keyof TSource, SetOperation<TSource, TMirror>[]>;
-    deleteFields: Map<keyof TSource, keyof TMirror>;
+    setOperations: Map<keyof TSource, FieldOperation<TSource, TMirror>>;
+    deleteOperations: Map<keyof TSource, FieldOperation<TSource, TMirror>>;
+    anyOtherSet?: FieldOperation<TSource, TMirror>;
+    anyOtherDelete?: FieldOperation<TSource, TMirror>;
 }
 
 export class Mapping<TSource, TMirror, TKey> {
@@ -24,116 +31,150 @@ export class Mapping<TSource, TMirror, TKey> {
     ) {}
 
     public createMirror(key: TKey) {
-        const setFieldOperations = new Map<
+        const setOperations = new Map<
             keyof TSource,
-            SetOperation<TSource, TMirror>[]
+            FieldOperation<TSource, TMirror>
         >();
 
-        const deleteFields = new Map<keyof TSource, keyof TMirror>();
+        const deleteOperations = new Map<
+            keyof TSource,
+            FieldOperation<TSource, TMirror>
+        >();
 
         const mappings = this.getMappings(key);
 
-        for (const key of Object.keys(mappings)) {
-            let filterValue =
+        for (const key in mappings) {
+            const filterValue =
                 mappings[key as keyof FieldMappings<TSource, TMirror>];
+            const sourceKey = key as keyof TSource;
 
             if (filterValue === false) {
                 continue;
             }
 
-            let setOperation: SetOperation<TSource, TMirror>;
-            let deleteField: keyof TMirror | undefined;
+            const [setOperation, deleteOperation] = this.parseFieldMapping(
+                filterValue as any // "Type instantiation is excessively deep and possibly infinite"
+            );
 
-            if (filterValue === true) {
-                const destField = key as keyof TMirror;
-                setOperation = (dest, val) => (dest[destField] = val);
-                deleteField = destField;
-            } else if (
-                typeof filterValue === 'string' ||
-                typeof filterValue === 'number' ||
-                typeof filterValue === 'symbol'
-            ) {
-                const destField = filterValue as keyof TMirror;
-                setOperation = (dest, val) => (dest[destField] = val);
-                deleteField = destField;
-            } else if (typeof filterValue === 'object') {
-                const destField = key as keyof TMirror;
-                setOperation = (dest, val, source) => {
-                    const {
-                        proxy: childProxy,
-                        mirror: childMirror,
-                    } = filterMirror<
-                        TSource[keyof TSource],
-                        TMirror[keyof TMirror]
-                    >(
-                        val,
-                        filterValue as FieldMappings<
-                            TSource[keyof TSource],
-                            TMirror[keyof TMirror]
-                        >
-                    );
-                    source[key as keyof TSource] = childProxy;
-                    dest[destField] = childMirror;
-                };
-                deleteField = destField;
-            } else if (typeof filterValue === 'function') {
-                setOperation = filterValue as SetOperation<TSource, TMirror>;
-            } else {
-                throw new Error(
-                    `Filter value has unexpected type: ${filterValue}`
-                );
-            }
+            setOperations.set(sourceKey, setOperation);
 
-            const existing = setFieldOperations.get(key as keyof TSource);
-
-            if (existing) {
-                existing.push(setOperation);
-            } else {
-                setFieldOperations.set(key as keyof TSource, [setOperation]);
-            }
-
-            if (deleteField !== undefined) {
-                deleteFields.set(key as keyof TSource, deleteField);
+            if (deleteOperation !== undefined) {
+                deleteOperations.set(sourceKey, deleteOperation);
             }
         }
 
         const mirror: TMirror = ({} as unknown) as TMirror;
 
-        for (const [param, operations] of setFieldOperations) {
-            for (const operation of operations) {
-                operation(mirror, this.source[param], this.source);
-            }
+        let anyOtherSet: FieldOperation<TSource, TMirror> | undefined;
+        let anyOtherDelete: FieldOperation<TSource, TMirror> | undefined;
+
+        const anyOtherValue: AnyOtherMapping<
+            TSource,
+            TMirror
+        > = (mappings as any)[anyOtherFields];
+        if (anyOtherValue !== undefined && anyOtherValue !== false) {
+            [anyOtherSet] = this.parseFieldMapping(anyOtherValue);
+
+            // Fields mapped via anyOtherField can only go to a destination field with the same name, so deleting is straightforward.
+            anyOtherDelete = (_source, key, dest) => {
+                const destKey = (key as unknown) as keyof TMirror;
+                delete dest[destKey];
+            };
+        }
+
+        for (const [field, operation] of setOperations) {
+            operation(this.source, field, mirror);
         }
 
         this.mirrorData.set(key, {
             mirror,
-            setFieldOperations,
-            deleteFields,
+            setOperations,
+            deleteOperations,
+            anyOtherSet,
+            anyOtherDelete,
         });
 
         return mirror;
+    }
+
+    private parseFieldMapping(
+        filterValue: FieldMapping<TSource, TMirror>
+    ): [
+        FieldOperation<TSource, TMirror>,
+        FieldOperation<TSource, TMirror> | undefined
+    ] {
+        let setOperation: FieldOperation<TSource, TMirror>;
+        let deleteOperation: FieldOperation<TSource, TMirror> | undefined;
+
+        if (filterValue === true) {
+            setOperation = (source, key, dest) => {
+                const destField = (key as unknown) as keyof TMirror;
+                dest[destField] = source[key] as any;
+            };
+            deleteOperation = (_source, key, dest) => {
+                const destField = (key as unknown) as keyof TMirror;
+                delete dest[destField];
+            };
+        } else if (typeof filterValue === 'object') {
+            setOperation = (source, key, dest) => {
+                const destField = (key as unknown) as keyof TMirror;
+                const { proxy: childProxy, mirror: childMirror } = filterMirror<
+                    TSource[keyof TSource],
+                    TMirror[keyof TMirror]
+                >(
+                    source[key],
+                    filterValue as FieldMappings<
+                        TSource[keyof TSource],
+                        TMirror[keyof TMirror]
+                    >
+                );
+                source[key] = childProxy;
+                dest[destField] = childMirror;
+            };
+            deleteOperation = (_source, key, dest) => {
+                const destField = (key as unknown) as keyof TMirror;
+                delete dest[destField];
+            };
+        } else if (
+            typeof filterValue === 'string' ||
+            typeof filterValue === 'number' ||
+            typeof filterValue === 'symbol'
+        ) {
+            const destField = filterValue as keyof TMirror;
+            setOperation = (source, key, dest) => {
+                dest[destField] = source[key] as any;
+            };
+            deleteOperation = (_source, _key, dest) => {
+                delete dest[destField];
+            };
+        } else if (typeof filterValue === 'function') {
+            setOperation = (source, field, dest) =>
+                filterValue(source[field], dest, source);
+        } else {
+            throw new Error(`Filter value has unexpected type: ${filterValue}`);
+        }
+
+        return [setOperation, deleteOperation];
     }
 
     public removeMirror(key: TKey) {
         this.mirrorData.delete(key);
     }
 
-    public setField(param: keyof TSource, val: TSource[keyof TSource]) {
-        for (const [, { mirror, setFieldOperations }] of this.mirrorData) {
-            const operations = setFieldOperations.get(param);
-            if (operations) {
-                for (const operation of operations) {
-                    operation(mirror, val, this.source);
-                }
+    public setField(field: keyof TSource, val: TSource[keyof TSource]) {
+        for (const [, { mirror, setOperations }] of this.mirrorData) {
+            const operation = setOperations.get(field);
+            if (operation) {
+                operation(this.source, field, mirror);
             }
         }
     }
 
-    public deleteField(param: keyof TSource) {
-        for (const [, { mirror, deleteFields }] of this.mirrorData) {
-            const field = deleteFields.get(param);
-            if (field !== undefined) {
-                delete mirror[field];
+    public deleteField(field: keyof TSource) {
+        for (const [, { mirror, deleteOperations }] of this.mirrorData) {
+            const operation = deleteOperations.get(field);
+            if (operation !== undefined) {
+                operation(this.source, field, mirror);
             }
         }
     }
