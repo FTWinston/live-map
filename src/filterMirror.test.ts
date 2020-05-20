@@ -1,4 +1,5 @@
 import { filterMirror } from './filterMirror';
+import { anyOtherFields } from './FieldMappings';
 
 interface FlatSource {
     prop1: string;
@@ -489,6 +490,58 @@ test('maps array changes', () => {
     expect(source.array).toBe(mirror.array);
 });
 
-// TODO: test anyOtherField
+test('sets up anyOtherField mapping', () => {
+    const source: FlatSource = {
+        prop1: 'hello',
+        prop2: false,
+        prop3: 25,
+    };
 
-// TODO: test multiFilter
+    const { proxy, mirror } = filterMirror<FlatSource, FlatMirror>(source, {
+        prop1: false,
+        [anyOtherFields]: true,
+    });
+
+    expect(proxy).toHaveProperty('prop1');
+    expect(proxy.prop1).toEqual(source.prop1);
+    expect(proxy).toHaveProperty('prop2');
+    expect(proxy.prop2).toEqual(source.prop2);
+    expect(proxy).toHaveProperty('prop3');
+    expect(proxy.prop3).toEqual(source.prop3);
+
+    expect(mirror).not.toHaveProperty('prop1');
+    expect(mirror).toHaveProperty('prop2');
+    expect(mirror.prop2).toEqual(source.prop2);
+    expect(mirror).toHaveProperty('prop3');
+    expect((mirror as any).prop3).toEqual(source.prop3);
+});
+
+test('simple maps anyOtherField changes', () => {
+    const source: FlatSource = {
+        prop1: 'hello',
+        prop2: false,
+        prop3: 25,
+    };
+
+    const { proxy, mirror } = filterMirror<FlatSource, FlatMirror>(source, {
+        prop1: false,
+        [anyOtherFields]: true,
+    });
+
+    proxy.prop1 = 'bye';
+    proxy.prop2 = true;
+    proxy.prop3 = 27;
+
+    expect(proxy).toHaveProperty('prop1');
+    expect(proxy.prop1).toEqual(source.prop1);
+    expect(proxy).toHaveProperty('prop2');
+    expect(proxy.prop2).toEqual(source.prop2);
+    expect(proxy).toHaveProperty('prop3');
+    expect(proxy.prop3).toEqual(source.prop3);
+
+    expect(mirror).not.toHaveProperty('prop1');
+    expect(mirror).toHaveProperty('prop2');
+    expect(mirror.prop2).toEqual(source.prop2);
+    expect(mirror).toHaveProperty('prop3');
+    expect((mirror as any).prop3).toEqual(source.prop3);
+});

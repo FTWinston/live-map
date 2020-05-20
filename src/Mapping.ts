@@ -48,10 +48,6 @@ export class Mapping<TSource, TMirror, TKey> {
                 mappings[key as keyof FieldMappings<TSource, TMirror>];
             const sourceKey = key as keyof TSource;
 
-            if (filterValue === false) {
-                continue;
-            }
-
             const [setOperation, deleteOperation] = this.parseFieldMapping(
                 filterValue as any // "Type instantiation is excessively deep and possibly infinite"
             );
@@ -112,7 +108,10 @@ export class Mapping<TSource, TMirror, TKey> {
         let setOperation: FieldOperation<TSource, TMirror>;
         let deleteOperation: FieldOperation<TSource, TMirror> | undefined;
 
-        if (filterValue === true) {
+        if (filterValue === false) {
+            setOperation = deleteOperation = () => {};
+        }
+        else if (filterValue === true) {
             setOperation = (source, key, dest) => {
                 const destField = (key as unknown) as keyof TMirror;
                 dest[destField] = source[key] as any;
