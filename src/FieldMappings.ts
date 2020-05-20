@@ -1,9 +1,9 @@
 export const anyOtherFields = Symbol('*');
 
 type FieldMappingFunction<TSource, TMirror> = (
-    value: any,
     dest: TMirror,
-    source: TSource
+    source: TSource,
+    field: keyof TSource
 ) => void;
 
 // For all other fields, only allow boolean or nested mirroring.

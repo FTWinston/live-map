@@ -141,7 +141,7 @@ test('sets up function mapping', () => {
     };
 
     const { proxy, mirror } = filterMirror<FlatSource, FlatMirror>(source, {
-        array: (val, dest) => (dest.length = val.length),
+        array: (dest, source) => (dest.length = source.array.length),
     });
 
     expect(proxy).toHaveProperty('array');
@@ -163,7 +163,7 @@ test('function maps property changes', () => {
     };
 
     const { proxy, mirror } = filterMirror<FlatSource, FlatMirror>(source, {
-        array: (val, dest) => (dest.length = val.length),
+        array: (dest, source) => (dest.length = source.array.length),
     });
 
     // TODO: what if we mutate the array, though? That needs something more complicated...

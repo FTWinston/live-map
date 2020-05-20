@@ -110,8 +110,7 @@ export class Mapping<TSource, TMirror, TKey> {
 
         if (filterValue === false) {
             setOperation = deleteOperation = () => {};
-        }
-        else if (filterValue === true) {
+        } else if (filterValue === true) {
             setOperation = (source, key, dest) => {
                 const destField = (key as unknown) as keyof TMirror;
                 dest[destField] = source[key] as any;
@@ -154,7 +153,7 @@ export class Mapping<TSource, TMirror, TKey> {
             };
         } else if (typeof filterValue === 'function') {
             setOperation = (source, field, dest) =>
-                filterValue(source[field], dest, source);
+                filterValue(dest, source, field);
         } else {
             throw new Error(`Filter value has unexpected type: ${filterValue}`);
         }
