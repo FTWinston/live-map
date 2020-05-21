@@ -1,6 +1,6 @@
 export const anyOtherFields = Symbol('*');
 
-type FieldMappingFunction<TSource, TMirror> = (
+export type FieldMappingFunction<TSource, TMirror> = (
     dest: TMirror,
     source: TSource,
     field: keyof TSource
