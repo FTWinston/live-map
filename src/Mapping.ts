@@ -90,7 +90,9 @@ export class Mapping<TSource, TMirror, TKey> {
         setOperations: Map<keyof TSource, FieldOperation<TSource, TMirror>>,
         anyOtherSet: FieldOperation<TSource, TMirror>
     ) {
-        const mirror = ({} as unknown) as TMirror;
+        const mirror = Array.isArray(this.source)
+            ? ([] as unknown) as TMirror
+            : ({} as unknown) as TMirror;
 
         for (const field in this.source) {
             this.runOperation(field, mirror, setOperations, anyOtherSet);
