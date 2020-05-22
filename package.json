@@ -10,6 +10,10 @@
   },
   "author": "FTWinston",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FTWinston/filter-mirror.git"
+  },
   "devDependencies": {
     "@types/jest": "^25.2.2",
     "jest": "^26.0.1",
