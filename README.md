@@ -29,6 +29,7 @@ const source = {
   }
 }
 
+// create a proxy and a mirror, specifying the fields that should be mirrored.
 const { proxy, mirror } = filterMirror(source, {
   name: true,
   email: true,
@@ -46,7 +47,6 @@ const { proxy, mirror } = filterMirror(source, {
 // Now use proxy in place of source, and changes will apply directly to mirror.
 proxy.email = 'john.doe2@example.com';
 proxy.cases.def002.status = 'Closed';
-
 proxy.cases.ghi003 = {
   client: 'C Chase',
   status: 'Pending',
@@ -73,5 +73,5 @@ expect(mirror).toEqual({
       status: 'Pending',
     }
   }
-})
+});
 ```
