@@ -1,7 +1,7 @@
 {
   "name": "filter-mirror",
   "version": "1.0.0",
-  "description": "A utility for creating partial copies of objects, that are updated in realtime.",
+  "description": "Proxy utility for creating live partial copies of objects.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
