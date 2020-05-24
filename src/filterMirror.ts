@@ -1,26 +1,17 @@
-import { createProxy } from './createProxy';
+import { ProxyManager } from './ProxyManager';
 import { FieldMappings } from './FieldMappings';
 import { Mapping } from './Mapping';
+import { filterMirrorInternal } from './filterMirrorInternal';
 
 export function filterMirror<TSource extends {}, TMirror extends {}>(
     source: TSource,
     mappings: FieldMappings<TSource, TMirror>
 ) {
-    const mapping = new Mapping<TSource, TMirror, string>(
+    const proxyManager = new ProxyManager();
+
+    return filterMirrorInternal<TSource, TMirror>(
         source,
-        () => mappings
+        mappings,
+        proxyManager
     );
-
-    const mirror = mapping.createMirror('');
-
-    const proxy = createProxy(
-        source,
-        (param, val) => mapping.setField(param, val),
-        (param) => mapping.deleteField(param)
-    );
-
-    return {
-        proxy,
-        mirror,
-    };
 }

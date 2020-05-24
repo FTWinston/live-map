@@ -4,7 +4,8 @@ import {
     anyOtherFields,
     AnyOtherMapping,
 } from './FieldMappings';
-import { filterMirror } from './filterMirror';
+import { filterMirrorInternal } from './filterMirrorInternal';
+import { ProxyManager } from './ProxyManager';
 
 type FieldOperation<TSource, TMirror> = (
     source: TSource,
@@ -27,7 +28,8 @@ export class Mapping<TSource, TMirror, TKey> {
         private readonly source: TSource,
         private readonly getMappings: (
             key: TKey
-        ) => FieldMappings<TSource, TMirror>
+        ) => FieldMappings<TSource, TMirror>,
+        private readonly proxyManager: ProxyManager
     ) {}
 
     public createMirror(key: TKey) {
@@ -91,8 +93,8 @@ export class Mapping<TSource, TMirror, TKey> {
         anyOtherSet: FieldOperation<TSource, TMirror>
     ) {
         const mirror = Array.isArray(this.source)
-            ? ([] as unknown) as TMirror
-            : ({} as unknown) as TMirror;
+            ? (([] as unknown) as TMirror)
+            : (({} as unknown) as TMirror);
 
         for (const field in this.source) {
             this.runOperation(field, mirror, setOperations, anyOtherSet);
@@ -123,18 +125,26 @@ export class Mapping<TSource, TMirror, TKey> {
             };
         } else if (typeof filterValue === 'object') {
             setOperation = (source, key, dest) => {
+                const sourceValue = source[key];
                 const destField = (key as unknown) as keyof TMirror;
-                const { proxy: childProxy, mirror: childMirror } = filterMirror<
+                const {
+                    proxy: childProxy,
+                    mirror: childMirror,
+                } = filterMirrorInternal<
                     TSource[keyof TSource],
                     TMirror[keyof TMirror]
                 >(
-                    source[key],
+                    sourceValue,
                     filterValue as FieldMappings<
                         TSource[keyof TSource],
                         TMirror[keyof TMirror]
-                    >
+                    >,
+                    this.proxyManager
                 );
-                source[key] = childProxy;
+
+                if (sourceValue !== childProxy) {
+                    source[key] = childProxy;
+                }
                 dest[destField] = childMirror;
             };
             deleteOperation = (_source, key, dest) => {

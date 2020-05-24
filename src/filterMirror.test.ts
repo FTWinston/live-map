@@ -545,3 +545,40 @@ test('simple maps anyOtherField changes', () => {
     expect(mirror).toHaveProperty('prop3');
     expect((mirror as any).prop3).toEqual(source.prop3);
 });
+
+test('anyOtherField accounts for adding new fields', () => {
+    const source: Record<string, boolean> = {
+        prop1: true,
+        prop2: true,
+        prop3: false,
+    };
+
+    const { proxy, mirror } = filterMirror<
+        Record<string, boolean>,
+        Record<string, boolean>
+    >(source, {
+        prop1: false,
+        [anyOtherFields]: true,
+    });
+
+    proxy.prop1 = false;
+    proxy.prop2 = false;
+    proxy.prop4 = true;
+
+    expect(proxy).toHaveProperty('prop1');
+    expect(proxy.prop1).toEqual(false);
+    expect(proxy).toHaveProperty('prop2');
+    expect(proxy.prop2).toEqual(false);
+    expect(proxy).toHaveProperty('prop3');
+    expect(proxy.prop3).toEqual(false);
+    expect(proxy).toHaveProperty('prop4');
+    expect(proxy.prop4).toEqual(true);
+
+    expect(mirror).not.toHaveProperty('prop1');
+    expect(mirror).toHaveProperty('prop2');
+    expect(mirror.prop2).toEqual(false);
+    expect(mirror).toHaveProperty('prop3');
+    expect(mirror.prop3).toEqual(false);
+    expect(mirror).toHaveProperty('prop4');
+    expect(mirror.prop4).toEqual(true);
+});

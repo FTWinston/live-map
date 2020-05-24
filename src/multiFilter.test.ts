@@ -174,7 +174,6 @@ test('delayed creation', () => {
     expect(mirror3.availableToAll).toEqual(source.availableToAll);
 });
 
-
 test('advanced setup', () => {
     const source: Record<string, FlatData> = {
         a: {
@@ -184,7 +183,7 @@ test('advanced setup', () => {
         b: {
             visibleToAll: 'public info',
             visibleToSelf: 'private info',
-        }
+        },
     };
 
     const { proxy, createMirror } = multiFilter<
@@ -196,7 +195,7 @@ test('advanced setup', () => {
             [anyOtherFields]: true,
         },
         [anyOtherFields]: {
-            visibleToAll: true,   
+            visibleToAll: true,
         },
     }));
 
@@ -239,7 +238,7 @@ test('advanced setup', () => {
         },
         b: {
             visibleToAll: 'public info',
-        }
+        },
     });
 
     expect(mirror2).toEqual({
@@ -249,7 +248,7 @@ test('advanced setup', () => {
         b: {
             visibleToAll: 'public info',
             visibleToSelf: 'private info',
-        }
+        },
     });
 });
 
@@ -262,7 +261,7 @@ test('advanced property changes', () => {
         b: {
             visibleToAll: 'public info',
             visibleToSelf: 'private info',
-        }
+        },
     };
 
     const { proxy, createMirror } = multiFilter<
@@ -274,7 +273,7 @@ test('advanced property changes', () => {
             [anyOtherFields]: true,
         },
         [anyOtherFields]: {
-            visibleToAll: true,   
+            visibleToAll: true,
         },
     }));
 
@@ -320,7 +319,7 @@ test('advanced property changes', () => {
         },
         b: {
             visibleToAll: 'public info',
-        }
+        },
     });
 
     expect(mirror2).toEqual({
@@ -330,6 +329,6 @@ test('advanced property changes', () => {
         b: {
             visibleToAll: 'public info',
             visibleToSelf: 'updated private info',
-        }
+        },
     });
 });
