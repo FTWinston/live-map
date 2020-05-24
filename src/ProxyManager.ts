@@ -1,46 +1,17 @@
-type SetOperation = (param: string | number | symbol, val: any) => void;
+import { OperationHandler } from './MappingHandler';
 
-type DeleteOperation = (param: string | number | symbol) => void;
+export class ProxyManager<TKey> {
+    private readonly proxyData = new Map<
+        object,
+        Map<TKey, OperationHandler<any>>
+    >();
 
-interface ProxyData {
-    // TODO: do these need to be grouped by key, so we can remove them when a multiFilter entry is no longer required?
-    setOperations: SetOperation[];
-    deleteOperations: DeleteOperation[];
-}
-
-export class ProxyManager {
-    private readonly proxyData = new Map<object, ProxyData>();
-
-    public getProxy<TSource extends {}>(
-        source: TSource,
-        setOperation: (
-            param: keyof TSource,
-            val: TSource[keyof TSource]
-        ) => void,
-        deleteOperation: (param: keyof TSource) => void
-    ): TSource {
-        // If source is already a managed proxy, record the new operations and return it.
-        let proxyData = this.proxyData.get(source);
-        if (proxyData !== undefined) {
-            proxyData.setOperations = [
-                ...proxyData.setOperations,
-                setOperation as SetOperation,
-            ];
-
-            proxyData.deleteOperations = [
-                ...proxyData.deleteOperations,
-                deleteOperation as DeleteOperation,
-            ];
-
-            return source;
-        }
-
+    private createProxy<TSource extends {}>(
+        source: TSource
+    ): [TSource, Map<TKey, OperationHandler<any>>] {
         const removeProxy = (proxy: object) => this.removeProxy(proxy);
 
-        proxyData = {
-            setOperations: [setOperation as SetOperation],
-            deleteOperations: [deleteOperation as DeleteOperation],
-        };
+        const proxyData = new Map<TKey, OperationHandler<any>>();
 
         const proxy = new Proxy(source, {
             set: (target, field: keyof TSource, val) => {
@@ -48,8 +19,8 @@ export class ProxyManager {
 
                 target[field] = val;
 
-                for (const operation of proxyData.setOperations) {
-                    operation(field, val);
+                for (const [, keyOperations] of proxyData) {
+                    keyOperations.setField(field, val);
                 }
 
                 return true;
@@ -59,8 +30,8 @@ export class ProxyManager {
 
                 delete target[field];
 
-                for (const operation of proxyData.deleteOperations) {
-                    operation(field);
+                for (const [, keyOperations] of proxyData) {
+                    keyOperations.deleteField(field);
                 }
 
                 return true;
@@ -69,10 +40,45 @@ export class ProxyManager {
 
         this.proxyData.set(proxy, proxyData);
 
+        return [proxy, proxyData];
+    }
+
+    public getProxy<TSource extends {}>(
+        key: TKey | undefined,
+        source: TSource,
+        mapping: OperationHandler<TSource>
+    ): TSource {
+        // If source is already a managed proxy, record the new operations and return it.
+
+        let proxy: TSource;
+        let proxyData = this.proxyData.get(source);
+        if (proxyData !== undefined) {
+            proxy = source;
+        } else {
+            [proxy, proxyData] = this.createProxy(source);
+        }
+
+        proxyData.set(key, mapping);
+
         return proxy;
     }
 
     public removeProxy(proxy: object) {
-        this.proxyData.delete(proxy);
+        if (!this.proxyData.delete(proxy)) {
+            return;
+        }
+
+        // We need to also remove any proxies that were below this one in the hierarchy,
+        // because this manager stores data for ALL proxies.
+        for (const key in proxy) {
+            const val = (proxy as any)[key];
+            this.removeProxy(val);
+        }
+    }
+
+    public removeKey(key: TKey) {
+        for (const [, handlersByKey] of this.proxyData) {
+            handlersByKey.delete(key);
+        }
     }
 }

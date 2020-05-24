@@ -21,7 +21,13 @@ interface MirrorData<TSource, TMirror> {
     anyOtherDelete?: FieldOperation<TSource, TMirror>;
 }
 
-export class Mapping<TSource, TMirror, TKey> {
+export interface OperationHandler<TSource> {
+    setField(field: keyof TSource, val: TSource[keyof TSource]): void;
+    deleteField(field: keyof TSource): void;
+}
+
+export class MappingHandler<TSource, TMirror, TKey>
+    implements OperationHandler<TSource> {
     private readonly mirrorData = new Map<TKey, MirrorData<TSource, TMirror>>();
 
     constructor(
@@ -29,7 +35,7 @@ export class Mapping<TSource, TMirror, TKey> {
         private readonly getMappings: (
             key: TKey
         ) => FieldMappings<TSource, TMirror>,
-        private readonly proxyManager: ProxyManager
+        private readonly proxyManager: ProxyManager<TKey>
     ) {}
 
     public createMirror(key: TKey) {
@@ -45,12 +51,13 @@ export class Mapping<TSource, TMirror, TKey> {
 
         const mappings = this.getMappings(key);
 
-        for (const key in mappings) {
+        for (const field in mappings) {
             const filterValue =
-                mappings[key as keyof FieldMappings<TSource, TMirror>];
-            const sourceKey = key as keyof TSource;
+                mappings[field as keyof FieldMappings<TSource, TMirror>];
+            const sourceKey = field as keyof TSource;
 
             const [setOperation, deleteOperation] = this.parseFieldMapping(
+                key,
                 filterValue as any // "Type instantiation is excessively deep and possibly infinite"
             );
 
@@ -71,6 +78,7 @@ export class Mapping<TSource, TMirror, TKey> {
 
         if (anyOtherValue !== undefined && anyOtherValue !== false) {
             [anyOtherSet, anyOtherDelete] = this.parseFieldMapping(
+                key,
                 anyOtherValue
             );
         }
@@ -104,6 +112,7 @@ export class Mapping<TSource, TMirror, TKey> {
     }
 
     private parseFieldMapping(
+        mirrorKey: TKey,
         filterValue: FieldMapping<TSource, TMirror>
     ): [
         FieldOperation<TSource, TMirror>,
@@ -132,13 +141,15 @@ export class Mapping<TSource, TMirror, TKey> {
                     mirror: childMirror,
                 } = filterMirrorInternal<
                     TSource[keyof TSource],
-                    TMirror[keyof TMirror]
+                    TMirror[keyof TMirror],
+                    TKey
                 >(
                     sourceValue,
                     filterValue as FieldMappings<
                         TSource[keyof TSource],
                         TMirror[keyof TMirror]
                     >,
+                    mirrorKey,
                     this.proxyManager
                 );
 
@@ -175,6 +186,7 @@ export class Mapping<TSource, TMirror, TKey> {
 
     public removeMirror(key: TKey) {
         this.mirrorData.delete(key);
+        this.proxyManager.removeKey(key);
     }
 
     public setField(field: keyof TSource, val: TSource[keyof TSource]) {

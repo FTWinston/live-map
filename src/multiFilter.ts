@@ -1,14 +1,14 @@
 import { FieldMappings } from './FieldMappings';
-import { Mapping } from './Mapping';
+import { MappingHandler } from './MappingHandler';
 import { ProxyManager } from './ProxyManager';
 
 export function multiFilter<TSource extends {}, TMirror extends {}, TKey>(
     source: TSource,
     getMappings: (key: TKey) => FieldMappings<TSource, TMirror>
 ) {
-    const proxyManager = new ProxyManager();
+    const proxyManager = new ProxyManager<TKey>();
 
-    const mapping = new Mapping<TSource, TMirror, TKey>(
+    const mapping = new MappingHandler<TSource, TMirror, TKey>(
         source,
         getMappings,
         proxyManager
@@ -19,11 +19,7 @@ export function multiFilter<TSource extends {}, TMirror extends {}, TKey>(
     const substituteMirror = (key: TKey, mirror: TMirror) =>
         mapping.substituteMirror(key, mirror);
 
-    const proxy = proxyManager.getProxy(
-        source,
-        (param, val) => mapping.setField(param, val),
-        (param) => mapping.deleteField(param)
-    );
+    const proxy = proxyManager.getProxy(undefined, source, mapping);
 
     return {
         proxy,
