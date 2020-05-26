@@ -1,3 +1,4 @@
+import JSONPatcherProxy from 'jsonpatcherproxy';
 import {
     FieldMapping,
     FieldMappings,
@@ -6,6 +7,7 @@ import {
 } from './FieldMappings';
 import { filterMirrorInternal } from './filterMirrorInternal';
 import { ProxyManager } from './ProxyManager';
+import { PatchOperation } from './Patch';
 
 type FieldOperation<TSource, TMirror> = (
     source: TSource,
@@ -38,7 +40,10 @@ export class MappingHandler<TSource, TMirror, TKey>
         private readonly proxyManager: ProxyManager<TKey>
     ) {}
 
-    public createMirror(key: TKey) {
+    public createMirror(
+        key: TKey,
+        patchCallback?: (operation: PatchOperation) => void
+    ) {
         const setOperations = new Map<
             keyof TSource,
             FieldOperation<TSource, TMirror>
@@ -83,7 +88,15 @@ export class MappingHandler<TSource, TMirror, TKey>
             );
         }
 
-        const mirror = this.populateNewMirror(setOperations, anyOtherSet);
+        let mirror = this.populateNewMirror(setOperations, anyOtherSet);
+
+        if (patchCallback) {
+            const patcher = new JSONPatcherProxy<TMirror>(mirror, false);
+            mirror = (patcher.observe(
+                false,
+                patchCallback
+            ) as unknown) as TMirror;
+        }
 
         this.mirrorData.set(key, {
             mirror,
@@ -139,6 +152,7 @@ export class MappingHandler<TSource, TMirror, TKey>
                 const {
                     proxy: childProxy,
                     mirror: childMirror,
+                    mapping: childMapping,
                 } = filterMirrorInternal<
                     TSource[keyof TSource],
                     TMirror[keyof TMirror],
@@ -157,6 +171,9 @@ export class MappingHandler<TSource, TMirror, TKey>
                     source[key] = childProxy;
                 }
                 dest[destField] = childMirror;
+
+                // If outputting patches, dest will be a proxy, and so the child mapping needs to use the proxied child mirror.
+                childMapping.substituteMirror(mirrorKey, dest[destField]);
             };
             deleteOperation = (_source, key, dest) => {
                 const destField = (key as unknown) as keyof TMirror;

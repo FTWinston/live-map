@@ -1,10 +1,12 @@
 import { ProxyManager } from './ProxyManager';
 import { FieldMappings } from './FieldMappings';
 import { filterMirrorInternal } from './filterMirrorInternal';
+import { PatchOperation } from './Patch';
 
 export function filterMirror<TSource extends {}, TMirror extends {}>(
     source: TSource,
-    mappings: FieldMappings<TSource, TMirror>
+    mappings: FieldMappings<TSource, TMirror>,
+    patchCallback?: (operation: PatchOperation) => void
 ) {
     const proxyManager = new ProxyManager<string>();
 
@@ -12,6 +14,7 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
         source,
         mappings,
         '',
-        proxyManager
+        proxyManager,
+        patchCallback
     );
 }

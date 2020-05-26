@@ -1,6 +1,7 @@
 import { FieldMappings } from './FieldMappings';
 import { MappingHandler } from './MappingHandler';
 import { ProxyManager } from './ProxyManager';
+import { PatchOperation } from './Patch';
 
 export function multiFilter<TSource extends {}, TMirror extends {}, TKey>(
     source: TSource,
@@ -14,7 +15,10 @@ export function multiFilter<TSource extends {}, TMirror extends {}, TKey>(
         proxyManager
     );
 
-    const createMirror = (key: TKey) => mapping.createMirror(key);
+    const createMirror = (
+        key: TKey,
+        patchCallback?: (operation: PatchOperation) => void
+    ) => mapping.createMirror(key, patchCallback);
     const removeMirror = (key: TKey) => mapping.removeMirror(key);
     const substituteMirror = (key: TKey, mirror: TMirror) =>
         mapping.substituteMirror(key, mirror);
