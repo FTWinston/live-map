@@ -1,5 +1,6 @@
 import { multiFilter } from './multiFilter';
 import { anyOtherFields } from './FieldMappings';
+import { PatchOperation } from './Patch';
 
 interface FlatData {
     visibleToAll: string;
@@ -331,4 +332,60 @@ test('advanced property changes', () => {
             visibleToSelf: 'updated private info',
         },
     });
+});
+
+test('patch generation', () => {
+    const source: Record<string, FlatData> = {
+        a: {
+            visibleToAll: 'public info',
+            visibleToSelf: 'private info',
+        },
+        b: {
+            visibleToAll: 'public info',
+            visibleToSelf: 'private info',
+        },
+    };
+
+    const { proxy, createMirror } = multiFilter<
+        Record<string, FlatData>,
+        Record<string, FlatData>,
+        string
+    >(source, (key) => ({
+        [key]: {
+            [anyOtherFields]: true,
+        },
+        [anyOtherFields]: {
+            visibleToAll: true,
+        },
+    }));
+
+    const patches1: PatchOperation[] = [];
+    const patches2: PatchOperation[] = [];
+
+    const mirror1 = createMirror('a', patch => patches1.push(patch));
+    const mirror2 = createMirror('b', patch => patches2.push(patch));
+
+    proxy.a.visibleToAll = 'updated public info';
+    proxy.b.visibleToSelf = 'updated private info';
+
+    expect(patches1).toEqual([
+        {
+            op: 'replace',
+            path: '/a/visibleToAll',
+            value: 'updated public info',
+        },
+    ]);
+
+    expect(patches2).toEqual([
+        {
+            op: 'replace',
+            path: '/a/visibleToAll',
+            value: 'updated public info',
+        },
+        {
+            op: 'replace',
+            path: '/b/visibleToSelf',
+            value: 'updated private info',
+        },
+    ]);
 });

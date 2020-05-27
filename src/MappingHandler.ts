@@ -1,4 +1,4 @@
-import JSONPatcherProxy from 'jsonpatcherproxy';
+import { JSONPatcherProxy } from 'jsonpatcherproxy';
 import {
     FieldMapping,
     FieldMappings,
@@ -88,15 +88,11 @@ export class MappingHandler<TSource, TMirror, TKey>
             );
         }
 
-        let mirror = this.populateNewMirror(setOperations, anyOtherSet);
-
-        if (patchCallback) {
-            const patcher = new JSONPatcherProxy<TMirror>(mirror, false);
-            mirror = (patcher.observe(
-                false,
-                patchCallback
-            ) as unknown) as TMirror;
-        }
+        let mirror = this.populateNewMirror(
+            setOperations,
+            anyOtherSet,
+            patchCallback
+        );
 
         this.mirrorData.set(key, {
             mirror,
@@ -111,14 +107,32 @@ export class MappingHandler<TSource, TMirror, TKey>
 
     private populateNewMirror(
         setOperations: Map<keyof TSource, FieldOperation<TSource, TMirror>>,
-        anyOtherSet: FieldOperation<TSource, TMirror>
+        anyOtherSet: FieldOperation<TSource, TMirror>,
+        patchCallback?: (patch: PatchOperation) => void
     ) {
-        const mirror = Array.isArray(this.source)
+        let mirror = Array.isArray(this.source)
             ? (([] as unknown) as TMirror)
             : (({} as unknown) as TMirror);
 
+        let patcher: JSONPatcherProxy<TMirror> | undefined;
+
+        if (patchCallback) {
+            patcher = new JSONPatcherProxy<TMirror>(mirror, false);
+
+            mirror = (patcher.observe(
+                false,
+                patchCallback
+            ) as unknown) as TMirror;
+
+            patcher.pause();
+        }
+
         for (const field in this.source) {
             this.runOperation(field, mirror, setOperations, anyOtherSet);
+        }
+
+        if (patcher) {
+            patcher.resume();
         }
 
         return mirror;

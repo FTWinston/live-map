@@ -608,6 +608,7 @@ test('simple patch generation', () => {
     proxy.prop1 = false;
     proxy.prop2 = false;
     proxy.prop4 = true;
+    delete proxy.prop3;
 
     expect(patches).toEqual([
         {
@@ -619,6 +620,100 @@ test('simple patch generation', () => {
             op: 'add',
             path: '/prop4',
             value: true,
+        },
+        {
+            op: 'remove',
+            path: '/prop3',
+        },
+    ]);
+});
+
+test('nested patch generation', () => {
+    const source: ParentSource = {
+        child1: {
+            prop1: 'hello',
+            prop2: false,
+            prop3: 35,
+            prop4: 'hi',
+        },
+        child2: {
+            prop1: 'wow',
+            prop2: true,
+            prop3: 1,
+            prop4: 'omg',
+        },
+        prop: 'root',
+    };
+
+    const patches: PatchOperation[] = [];
+
+    const { proxy, mirror } = filterMirror<ParentSource, ParentMirror>(
+        source,
+        {
+            child1: {
+                prop1: true,
+                prop2: true,
+            },
+            child2: {
+                prop4: 'prop1',
+            },
+            prop: true,
+        },
+        (patch) => patches.push(patch)
+    );
+
+    proxy.child1.prop2 = true;
+    proxy.child2.prop4 = 'hello';
+    proxy.prop = '';
+
+    proxy.child1 = {
+        prop1: 'yo',
+        prop2: true,
+        prop3: 36,
+        prop4: 'bye',
+    };
+
+    proxy.child1.prop2 = false;
+
+    delete proxy.child1.prop1;
+
+    expect(patches).toEqual([
+        {
+            op: 'replace',
+            path: '/child1/prop2',
+            value: true,
+        },
+        {
+            op: 'replace',
+            path: '/child2/prop1',
+            value: 'hello',
+        },
+        {
+            op: 'replace',
+            path: '/prop',
+            value: '',
+        },
+        {
+            op: 'replace',
+            path: '/child1',
+            /*
+            value: {
+                prop1: 'yo',
+                prop2: true,
+            },
+            */
+            value: {
+                prop2: false, // because this is NOT a snapshot, it accounts for subsequent changes
+            },
+        },
+        {
+            op: 'replace',
+            path: '/child1/prop2',
+            value: false,
+        },
+        {
+            op: 'remove',
+            path: '/child1/prop1',
         },
     ]);
 });
