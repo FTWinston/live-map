@@ -1,5 +1,6 @@
 import { filterMirror } from './filterMirror';
 import { anyOtherFields } from './FieldMappings';
+import { PatchOperation } from './Patch';
 
 interface FlatSource {
     prop1: string;
@@ -581,4 +582,43 @@ test('anyOtherField accounts for adding new fields', () => {
     expect(mirror.prop3).toEqual(false);
     expect(mirror).toHaveProperty('prop4');
     expect(mirror.prop4).toEqual(true);
+});
+
+test('simple patch generation', () => {
+    const source: Record<string, boolean> = {
+        prop1: true,
+        prop2: true,
+        prop3: false,
+    };
+
+    const patches: PatchOperation[] = [];
+
+    const { proxy, mirror } = filterMirror<
+        Record<string, boolean>,
+        Record<string, boolean>
+    >(
+        source,
+        {
+            prop1: false,
+            [anyOtherFields]: true,
+        },
+        (patch) => patches.push(patch)
+    );
+
+    proxy.prop1 = false;
+    proxy.prop2 = false;
+    proxy.prop4 = true;
+
+    expect(patches).toEqual([
+        {
+            op: 'replace',
+            path: '/prop2',
+            value: false,
+        },
+        {
+            op: 'add',
+            path: '/prop4',
+            value: true,
+        },
+    ]);
 });
