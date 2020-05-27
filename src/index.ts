@@ -5,3 +5,4 @@ export {
     FieldMappings,
     FieldMappingFunction,
 } from './FieldMappings';
+export { PatchOperation } from './Patch';
