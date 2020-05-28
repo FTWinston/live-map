@@ -27,6 +27,6 @@
     "lib/**/*"
   ],
   "dependencies": {
-    "jsonpatcherproxy": "0.1.0-0"
+    "jsonpatcherproxy": "git+https://github.com/FTWinston/JSONPatcherProxy.git"
   }
 }
