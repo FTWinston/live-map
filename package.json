@@ -27,6 +27,7 @@
     "lib/**/*"
   ],
   "dependencies": {
+    "fast-json-patch": "^3.0.0-1",
     "jsonpatcherproxy": "git+https://github.com/FTWinston/JSONPatcherProxy.git"
   }
 }

@@ -362,8 +362,8 @@ test('patch generation', () => {
     const patches1: PatchOperation[] = [];
     const patches2: PatchOperation[] = [];
 
-    const mirror1 = createMirror('a', patch => patches1.push(patch));
-    const mirror2 = createMirror('b', patch => patches2.push(patch));
+    const mirror1 = createMirror('a', (patch) => patches1.push(patch));
+    const mirror2 = createMirror('b', (patch) => patches2.push(patch));
 
     proxy.a.visibleToAll = 'updated public info';
     proxy.b.visibleToSelf = 'updated private info';
