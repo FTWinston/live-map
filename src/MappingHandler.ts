@@ -88,14 +88,14 @@ export class MappingHandler<TSource, TMirror, TKey>
             );
         }
 
-        let mirror = this.populateNewMirror(
+        const [mirror, mirrorProxy] = this.populateNewMirror(
             setOperations,
             anyOtherSet,
             patchCallback
         );
 
         this.mirrorData.set(key, {
-            mirror,
+            mirror: mirrorProxy,
             setOperations,
             deleteOperations,
             anyOtherSet,
@@ -109,17 +109,19 @@ export class MappingHandler<TSource, TMirror, TKey>
         setOperations: Map<keyof TSource, FieldOperation<TSource, TMirror>>,
         anyOtherSet: FieldOperation<TSource, TMirror>,
         patchCallback?: (patch: PatchOperation) => void
-    ) {
-        let mirror = Array.isArray(this.source)
+    ): [TMirror, TMirror] {
+        const mirror = Array.isArray(this.source)
             ? (([] as unknown) as TMirror)
             : (({} as unknown) as TMirror);
 
         let patcher: JSONPatcherProxy<TMirror> | undefined;
 
+        let mirrorProxy = mirror;
+
         if (patchCallback) {
             patcher = new JSONPatcherProxy<TMirror>(mirror, false);
 
-            mirror = (patcher.observe(
+            mirrorProxy = (patcher.observe(
                 false,
                 patchCallback
             ) as unknown) as TMirror;
@@ -128,14 +130,14 @@ export class MappingHandler<TSource, TMirror, TKey>
         }
 
         for (const field in this.source) {
-            this.runOperation(field, mirror, setOperations, anyOtherSet);
+            this.runOperation(field, mirrorProxy, setOperations, anyOtherSet);
         }
 
         if (patcher) {
             patcher.resume();
         }
 
-        return mirror;
+        return [mirror, mirrorProxy];
     }
 
     private parseFieldMapping(
