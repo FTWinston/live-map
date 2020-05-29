@@ -1,4 +1,5 @@
 import { JSONPatcherProxy } from 'jsonpatcherproxy';
+import { deepClone } from 'fast-json-patch';
 import {
     FieldMapping,
     FieldMappings,
@@ -119,9 +120,8 @@ export class MappingHandler<TSource, TMirror, TKey>
         if (patchCallback) {
             patcher = new JSONPatcherProxy<TMirror>(mirror, false);
 
-            mirror = (patcher.observe(
-                false,
-                patchCallback
+            mirror = (patcher.observe(false, (patch: PatchOperation) =>
+                patchCallback(this.tidyPatch(patch))
             ) as unknown) as TMirror;
 
             patcher.pause();
@@ -136,6 +136,17 @@ export class MappingHandler<TSource, TMirror, TKey>
         }
 
         return mirror;
+    }
+
+    private tidyPatch(operation: PatchOperation) {
+        switch (operation.op) {
+            case 'add':
+            case 'replace':
+                operation.value = deepClone(operation.value);
+                break;
+        }
+
+        return operation;
     }
 
     private parseFieldMapping(
