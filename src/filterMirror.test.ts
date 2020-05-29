@@ -1,6 +1,6 @@
 import { filterMirror } from './filterMirror';
 import { anyOtherFields } from './FieldMappings';
-import { PatchOperation } from './Patch';
+import { PatchOperation } from './PatchOperation';
 
 interface FlatSource {
     prop1: string;

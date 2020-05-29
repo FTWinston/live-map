@@ -1,7 +1,7 @@
 import { FieldMappings } from './FieldMappings';
 import { MappingHandler } from './MappingHandler';
 import { ProxyManager } from './ProxyManager';
-import { PatchOperation } from './Patch';
+import { PatchOperation } from './PatchOperation';
 
 export function multiFilter<TSource extends {}, TMirror extends {}, TKey>(
     source: TSource,

@@ -1,7 +1,7 @@
 import { ProxyManager } from './ProxyManager';
 import { FieldMappings } from './FieldMappings';
 import { MappingHandler } from './MappingHandler';
-import { PatchOperation } from './Patch';
+import { PatchOperation } from './PatchOperation';
 
 export function filterMirrorInternal<
     TSource extends {},

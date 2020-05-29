@@ -1,6 +1,6 @@
 import { multiFilter } from './multiFilter';
 import { anyOtherFields } from './FieldMappings';
-import { PatchOperation } from './Patch';
+import { PatchOperation } from './PatchOperation';
 
 interface FlatData {
     visibleToAll: string;

@@ -7,7 +7,7 @@ import {
 } from './FieldMappings';
 import { filterMirrorInternal } from './filterMirrorInternal';
 import { ProxyManager } from './ProxyManager';
-import { PatchOperation } from './Patch';
+import { PatchOperation } from './PatchOperation';
 
 type FieldOperation<TSource, TMirror> = (
     source: TSource,
