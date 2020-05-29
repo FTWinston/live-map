@@ -696,14 +696,9 @@ test('nested patch generation', () => {
         {
             op: 'replace',
             path: '/child1',
-            /*
             value: {
                 prop1: 'yo',
                 prop2: true,
-            },
-            */
-            value: {
-                prop2: false, // because this is NOT a snapshot, it accounts for subsequent changes
             },
         },
         {
