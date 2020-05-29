@@ -366,6 +366,7 @@ test('patch generation', () => {
     const mirror2 = createMirror('b', (patch) => patches2.push(patch));
 
     proxy.a.visibleToAll = 'updated public info';
+    proxy.b.visibleToAll = 'more updated info';
     proxy.b.visibleToSelf = 'updated private info';
 
     expect(patches1).toEqual([
@@ -374,6 +375,11 @@ test('patch generation', () => {
             path: '/a/visibleToAll',
             value: 'updated public info',
         },
+        {
+            op: 'replace',
+            path: '/b/visibleToAll',
+            value: 'more updated info',
+        },
     ]);
 
     expect(patches2).toEqual([
@@ -381,6 +387,11 @@ test('patch generation', () => {
             op: 'replace',
             path: '/a/visibleToAll',
             value: 'updated public info',
+        },
+        {
+            op: 'replace',
+            path: '/b/visibleToAll',
+            value: 'more updated info',
         },
         {
             op: 'replace',
