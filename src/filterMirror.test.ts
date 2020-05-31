@@ -712,3 +712,75 @@ test('nested patch generation', () => {
         },
     ]);
 });
+
+interface Field {
+    field: string;
+}
+
+interface Grandparent {
+    content: Record<string, Field>;
+}
+
+test('patch of named child record', () => {
+    const source: Record<string, Field> = {
+        a: {
+            field: 'hi',
+        },
+    };
+
+    const patches: PatchOperation[] = [];
+
+    const { proxy, mirror } = filterMirror<Record<string, Field>, Record<string, Field>>(
+        source,
+        {
+            a: {
+                field: true,
+            },
+        },
+        (patch) => patches.push(patch)
+    );
+
+    proxy.a.field = 'bye';
+
+    expect(patches).toEqual([
+        {
+            op: 'replace',
+            path: '/a/field',
+            value: 'bye',
+        },
+    ]);
+});
+
+test('patch of named grandchild record', () => {
+    const source: Grandparent = {
+        content: {
+            a: {
+                field: 'hi',
+            },
+        }
+    };
+
+    const patches: PatchOperation[] = [];
+
+    const { proxy, mirror } = filterMirror<Grandparent, Grandparent>(
+        source,
+        {
+            content: {
+                a: {
+                    field: true,
+                },
+            }
+        },
+        (patch) => patches.push(patch)
+    );
+
+    proxy.content.a.field = 'bye';
+
+    expect(patches).toEqual([
+        {
+            op: 'replace',
+            path: '/content/a/field',
+            value: 'bye',
+        },
+    ]);
+});

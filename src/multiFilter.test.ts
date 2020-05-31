@@ -838,6 +838,73 @@ test('patch of sub-mapped new child fields', () => {
     expect(patches2).toEqual([]);
 });
 
+test('patch of named child record', () => {
+    const source: Record<string, FlatData> = {
+        a: {
+            visibleToAll: 'hi',
+        },
+    };
+
+    const { proxy, createMirror } = multiFilter<
+        Record<string, FlatData>,
+        Record<string, FlatData>,
+        string
+    >(source, (key) => ({
+        a: {
+            visibleToAll: true,
+        },
+    }));
+    
+    const patches: PatchOperation[] = [];
+
+    const mirror = createMirror('a', (patch) => patches.push(patch));
+
+    proxy.a.visibleToAll = 'bye';
+
+    expect(patches).toEqual([
+        {
+            op: 'replace',
+            path: '/a/visibleToAll',
+            value: 'bye',
+        },
+    ]);
+});
+
+test('patch of named grandchild record', () => {
+    const source: Grandparent2 = {
+        content: {
+            a: {
+                visibleToAll: 'hi',
+            },
+        }
+    };
+
+    const { proxy, createMirror } = multiFilter<Grandparent2, Grandparent2, string>(
+        source,
+        (key) => ({
+            content: {
+                a: {
+                    visibleToAll: true,
+                },
+            }
+        })
+    );
+
+    const patches: PatchOperation[] = [];
+
+    const mirror = createMirror('a', (patch) => patches.push(patch));
+
+    proxy.content.a.visibleToAll = 'bye';
+
+    expect(patches).toEqual([
+        {
+            op: 'replace',
+            path: '/content/a/visibleToAll',
+            value: 'bye',
+        },
+    ]);
+});
+
 test('patch of named new grandchild records', () => {
     const source: Grandparent2 = {
         content: {
