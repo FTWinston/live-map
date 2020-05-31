@@ -162,18 +162,18 @@ export class MappingHandler<TSource, TMirror, TKey>
         if (filterValue === false) {
             setOperation = deleteOperation = () => {};
         } else if (filterValue === true) {
-            setOperation = (source, key, dest) => {
-                const destField = (key as unknown) as keyof TMirror;
-                dest[destField] = source[key] as any;
+            setOperation = (source, field, dest) => {
+                const destField = (field as unknown) as keyof TMirror;
+                dest[destField] = source[field] as any;
             };
-            deleteOperation = (_source, key, dest) => {
-                const destField = (key as unknown) as keyof TMirror;
+            deleteOperation = (_source, field, dest) => {
+                const destField = (field as unknown) as keyof TMirror;
                 delete dest[destField];
             };
         } else if (typeof filterValue === 'object') {
-            setOperation = (source, key, dest) => {
-                const sourceValue = source[key];
-                const destField = (key as unknown) as keyof TMirror;
+            setOperation = (source, field, dest) => {
+                const sourceValue = source[field];
+                const destField = (field as unknown) as keyof TMirror;
                 const {
                     proxy: childProxy,
                     mirror: childMirror,
@@ -193,7 +193,7 @@ export class MappingHandler<TSource, TMirror, TKey>
                 );
 
                 if (sourceValue !== childProxy) {
-                    source[key] = childProxy;
+                    source[field] = childProxy;
                 }
                 dest[destField] = childMirror;
 
@@ -214,10 +214,10 @@ export class MappingHandler<TSource, TMirror, TKey>
             typeof filterValue === 'symbol'
         ) {
             const destField = filterValue as keyof TMirror;
-            setOperation = (source, key, dest) => {
-                dest[destField] = source[key] as any;
+            setOperation = (source, field, dest) => {
+                dest[destField] = source[field] as any;
             };
-            deleteOperation = (_source, _key, dest) => {
+            deleteOperation = (_source, _field, dest) => {
                 delete dest[destField];
             };
         } else if (typeof filterValue === 'function') {
