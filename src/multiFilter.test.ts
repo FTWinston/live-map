@@ -528,7 +528,6 @@ test('patch of sub-mapped new root fields', () => {
 
     expect(patches1).toEqual([
         {
-            // MISSING
             op: 'add',
             path: '/b',
             value: {
@@ -578,12 +577,10 @@ test('patch of named new child records', () => {
 
     expect(patches1).toEqual([
         {
-            // MISSING
             op: 'add',
             path: '/b',
             value: {
                 visibleToAll: 'public info',
-                visibleToSelf: 'private info',
             },
         },
         {
@@ -592,7 +589,6 @@ test('patch of named new child records', () => {
             value: 'updated public info',
         },
         {
-            // MISSING
             op: 'replace',
             path: '/b/visibleToAll',
             value: 'more updated info',
@@ -609,11 +605,6 @@ test('patch of named new child records', () => {
             op: 'replace',
             path: '/b/visibleToAll',
             value: 'more updated info',
-        },
-        {
-            op: 'replace',
-            path: '/b/visibleToSelf',
-            value: 'updated private info',
         },
     ]);
 });
@@ -657,12 +648,10 @@ test('patch of "any other" new child records', () => {
 
     expect(patches1).toEqual([
         {
-            // MISSING
             op: 'add',
             path: '/b',
             value: {
                 visibleToAll: 'public info',
-                visibleToSelf: 'private info',
             },
         },
         {
@@ -671,7 +660,6 @@ test('patch of "any other" new child records', () => {
             value: 'updated public info',
         },
         {
-            // MISSING
             op: 'replace',
             path: '/b/visibleToAll',
             value: 'more updated info',

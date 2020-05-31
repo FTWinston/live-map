@@ -197,8 +197,12 @@ export class MappingHandler<TSource, TMirror, TKey>
                 }
                 dest[destField] = childMirror;
 
-                // If outputting patches, dest will be a proxy, and so the child mapping needs to use the proxied child mirror.
-                childMapping.substituteMirror(mirrorKey, dest[destField]);
+                const destValue = dest[destField];
+
+                // If outputting patches, dest will be a proxy, and so the value we just assigned will have been replaced with a proxy.
+                // The child mapping needs to use the proxied child mirror.
+
+                childMapping.substituteMirror(mirrorKey, destValue);
             };
             deleteOperation = (_source, key, dest) => {
                 const destField = (key as unknown) as keyof TMirror;
