@@ -400,3 +400,299 @@ test('patch generation', () => {
         },
     ]);
 });
+
+interface AB {
+    a?: FlatData;
+    b?: FlatData;
+}
+
+test('patch of simple new root fields', () => {
+    const source: Record<string, string> = {
+        a: 'blah',
+    };
+
+    const { proxy, createMirror } = multiFilter<Record<string, string>, Record<string, string>, string>(
+        source,
+        (key) => ({
+            a: true,
+            b: true,
+        })
+    );
+
+    const patches1: PatchOperation[] = [];
+    const patches2: PatchOperation[] = [];
+
+    const mirror1 = createMirror('a', (patch) => patches1.push(patch));
+
+    proxy.b = 'blah'
+
+    const mirror2 = createMirror('b', (patch) => patches2.push(patch));
+
+    proxy.a = 'yadda';
+
+    expect(patches1).toEqual([
+        {
+            op: 'add',
+            path: '/b',
+            value: 'blah',
+        },
+        {
+            op: 'replace',
+            path: '/a',
+            value: 'yadda',
+        },
+    ]);
+
+    expect(patches2).toEqual([
+        {
+            op: 'replace',
+            path: '/a',
+            value: 'yadda',
+        },
+    ]);
+});
+
+test('patch of complex new root fields', () => {
+    const source: Record<string, FlatData> = {
+        a: {
+            visibleToAll: 'public info',
+            visibleToSelf: 'private info',
+        },
+    };
+
+    const { proxy, createMirror } = multiFilter<AB, AB, string>(
+        source,
+        (key) => ({
+            a: true,
+            b: true,
+        })
+    );
+
+    const patches1: PatchOperation[] = [];
+    const patches2: PatchOperation[] = [];
+
+    const mirror1 = createMirror('a', (patch) => patches1.push(patch));
+
+    proxy.b = {
+        visibleToAll: 'public info',
+        visibleToSelf: 'private info',
+    };
+
+    const mirror2 = createMirror('b', (patch) => patches2.push(patch));
+
+    expect(patches1).toEqual([
+        {
+            op: 'add',
+            path: '/b',
+            value: {
+                visibleToAll: 'public info',
+                visibleToSelf: 'private info',
+            },
+        },
+    ]);
+
+    expect(patches2).toEqual([]);
+});
+
+test('patch of sub-mapped new root fields', () => {
+    const source: Record<string, FlatData> = {
+        a: {
+            visibleToAll: 'public info',
+            visibleToSelf: 'private info',
+        },
+    };
+
+    const { proxy, createMirror } = multiFilter<AB, AB, string>(
+        source,
+        (key) => ({
+            a: {
+                visibleToAll: true,
+            },
+            b: {
+                visibleToAll: true,
+            },
+        })
+    );
+
+    const patches1: PatchOperation[] = [];
+    const patches2: PatchOperation[] = [];
+
+    const mirror1 = createMirror('a', (patch) => patches1.push(patch));
+
+    proxy.b = {
+        visibleToAll: 'public info',
+        visibleToSelf: 'private info',
+    };
+
+    const mirror2 = createMirror('b', (patch) => patches2.push(patch));
+
+    expect(patches1).toEqual([
+        {
+            // MISSING
+            op: 'add',
+            path: '/b',
+            value: {
+                visibleToAll: 'public info',
+            },
+        },
+    ]);
+
+    expect(patches2).toEqual([]);
+});
+
+test('patch of named new child records', () => {
+    const source: Record<string, FlatData> = {
+        a: {
+            visibleToAll: 'public info',
+            visibleToSelf: 'private info',
+        },
+    };
+
+    const { proxy, createMirror } = multiFilter<AB, AB, string>(
+        source,
+        (key) => ({
+            a: {
+                [anyOtherFields]: true,
+            },
+            b: {
+                visibleToAll: true,
+            },
+        })
+    );
+
+    const patches1: PatchOperation[] = [];
+    const patches2: PatchOperation[] = [];
+
+    const mirror1 = createMirror('a', (patch) => patches1.push(patch));
+
+    proxy.b = {
+        visibleToAll: 'public info',
+        visibleToSelf: 'private info',
+    };
+
+    const mirror2 = createMirror('b', (patch) => patches2.push(patch));
+
+    proxy.a.visibleToAll = 'updated public info';
+    proxy.b.visibleToAll = 'more updated info';
+    proxy.b.visibleToSelf = 'updated private info';
+
+    expect(patches1).toEqual([
+        {
+            // MISSING
+            op: 'add',
+            path: '/b',
+            value: {
+                visibleToAll: 'public info',
+                visibleToSelf: 'private info',
+            },
+        },
+        {
+            op: 'replace',
+            path: '/a/visibleToAll',
+            value: 'updated public info',
+        },
+        {
+            // MISSING
+            op: 'replace',
+            path: '/b/visibleToAll',
+            value: 'more updated info',
+        },
+    ]);
+
+    expect(patches2).toEqual([
+        {
+            op: 'replace',
+            path: '/a/visibleToAll',
+            value: 'updated public info',
+        },
+        {
+            op: 'replace',
+            path: '/b/visibleToAll',
+            value: 'more updated info',
+        },
+        {
+            op: 'replace',
+            path: '/b/visibleToSelf',
+            value: 'updated private info',
+        },
+    ]);
+});
+
+test('patch of "any other" new child records', () => {
+    const source: Record<string, FlatData> = {
+        a: {
+            visibleToAll: 'public info',
+            visibleToSelf: 'private info',
+        },
+    };
+
+    const { proxy, createMirror } = multiFilter<
+        Record<string, FlatData>,
+        Record<string, FlatData>,
+        string
+    >(source, (key) => ({
+        [key]: {
+            [anyOtherFields]: true,
+        },
+        [anyOtherFields]: {
+            visibleToAll: true,
+        },
+    }));
+
+    const patches1: PatchOperation[] = [];
+    const patches2: PatchOperation[] = [];
+
+    const mirror1 = createMirror('a', (patch) => patches1.push(patch));
+
+    proxy.b = {
+        visibleToAll: 'public info',
+        visibleToSelf: 'private info',
+    };
+
+    const mirror2 = createMirror('b', (patch) => patches2.push(patch));
+
+    proxy.a.visibleToAll = 'updated public info';
+    proxy.b.visibleToAll = 'more updated info';
+    proxy.b.visibleToSelf = 'updated private info';
+
+    expect(patches1).toEqual([
+        {
+            // MISSING
+            op: 'add',
+            path: '/b',
+            value: {
+                visibleToAll: 'public info',
+                visibleToSelf: 'private info',
+            },
+        },
+        {
+            op: 'replace',
+            path: '/a/visibleToAll',
+            value: 'updated public info',
+        },
+        {
+            // MISSING
+            op: 'replace',
+            path: '/b/visibleToAll',
+            value: 'more updated info',
+        },
+    ]);
+
+    expect(patches2).toEqual([
+        {
+            op: 'replace',
+            path: '/a/visibleToAll',
+            value: 'updated public info',
+        },
+        {
+            op: 'replace',
+            path: '/b/visibleToAll',
+            value: 'more updated info',
+        },
+        {
+            op: 'replace',
+            path: '/b/visibleToSelf',
+            value: 'updated private info',
+        },
+    ]);
+});
