@@ -684,3 +684,309 @@ test('patch of "any other" new child records', () => {
         },
     ]);
 });
+
+interface Grandparent1 {
+    content: Record<string, string>;
+}
+
+test('patch of simple new child fields', () => {
+    const source: Grandparent1 = {
+        content: {
+            a: 'blah',
+        }
+    };
+
+    const { proxy, createMirror } = multiFilter<Grandparent1, Grandparent1, string>(
+        source,
+        (key) => ({
+            content: {
+                a: true,
+                b: true,
+            }
+        })
+    );
+
+    const patches1: PatchOperation[] = [];
+    const patches2: PatchOperation[] = [];
+
+    const mirror1 = createMirror('a', (patch) => patches1.push(patch));
+
+    proxy.content.b = 'blah'
+
+    const mirror2 = createMirror('b', (patch) => patches2.push(patch));
+
+    proxy.content.a = 'yadda';
+
+    expect(patches1).toEqual([
+        {
+            op: 'add',
+            path: '/content/b',
+            value: 'blah',
+        },
+        {
+            op: 'replace',
+            path: '/content/a',
+            value: 'yadda',
+        },
+    ]);
+
+    expect(patches2).toEqual([
+        {
+            op: 'replace',
+            path: '/content/a',
+            value: 'yadda',
+        },
+    ]);
+});
+
+interface Grandparent2 {
+    content: Record<string, FlatData>;
+}
+
+test('patch of complex new child fields', () => {
+    const source: Grandparent2 = {
+        content: {    
+            a: {
+                visibleToAll: 'public info',
+                visibleToSelf: 'private info',
+            },
+        }
+    };
+
+    const { proxy, createMirror } = multiFilter<Grandparent2, Grandparent2, string>(
+        source,
+        (key) => ({
+            content: {
+                a: true,
+                b: true,
+            }
+        })
+    );
+
+    const patches1: PatchOperation[] = [];
+    const patches2: PatchOperation[] = [];
+
+    const mirror1 = createMirror('a', (patch) => patches1.push(patch));
+
+    proxy.content.b = {
+        visibleToAll: 'public info',
+        visibleToSelf: 'private info',
+    };
+
+    const mirror2 = createMirror('b', (patch) => patches2.push(patch));
+
+    expect(patches1).toEqual([
+        {
+            op: 'add',
+            path: '/content/b',
+            value: {
+                visibleToAll: 'public info',
+                visibleToSelf: 'private info',
+            },
+        },
+    ]);
+
+    expect(patches2).toEqual([]);
+});
+
+test('patch of sub-mapped new child fields', () => {
+    const source: Grandparent2 = {
+        content: {
+            a: {
+                visibleToAll: 'public info',
+                visibleToSelf: 'private info',
+            },
+        }
+    };
+
+    const { proxy, createMirror } = multiFilter<Grandparent2, Grandparent2, string>(
+        source,
+        (key) => ({
+            content: {
+                a: {
+                    visibleToAll: true,
+                },
+                b: {
+                    visibleToAll: true,
+                },
+            }
+        })
+    );
+
+    const patches1: PatchOperation[] = [];
+    const patches2: PatchOperation[] = [];
+
+    const mirror1 = createMirror('a', (patch) => patches1.push(patch));
+
+    proxy.content.b = {
+        visibleToAll: 'public info',
+        visibleToSelf: 'private info',
+    };
+
+    const mirror2 = createMirror('b', (patch) => patches2.push(patch));
+
+    expect(patches1).toEqual([
+        {
+            op: 'add',
+            path: '/content/b',
+            value: {
+                visibleToAll: 'public info',
+            },
+        },
+    ]);
+
+    expect(patches2).toEqual([]);
+});
+
+test('patch of named new grandchild records', () => {
+    const source: Grandparent2 = {
+        content: {
+            a: {
+                visibleToAll: 'public info',
+                visibleToSelf: 'private info',
+            },
+        }
+    };
+
+    const { proxy, createMirror } = multiFilter<Grandparent2, Grandparent2, string>(
+        source,
+        (key) => ({
+            content: {
+                a: {
+                    [anyOtherFields]: true,
+                },
+                b: {
+                    visibleToAll: true,
+                },
+            }
+        })
+    );
+
+    const patches1: PatchOperation[] = [];
+    const patches2: PatchOperation[] = [];
+
+    const mirror1 = createMirror('a', (patch) => patches1.push(patch));
+
+    proxy.content.b = {
+        visibleToAll: 'public info',
+        visibleToSelf: 'private info',
+    };
+
+    const mirror2 = createMirror('b', (patch) => patches2.push(patch));
+
+    proxy.content.a.visibleToAll = 'updated public info';
+    proxy.content.b.visibleToAll = 'more updated info';
+    proxy.content.b.visibleToSelf = 'updated private info';
+
+    expect(patches1).toEqual([
+        {
+            op: 'add',
+            path: '/content/b',
+            value: {
+                visibleToAll: 'public info',
+            },
+        },
+        {
+            op: 'replace',
+            path: '/content/a/visibleToAll',
+            value: 'updated public info',
+        },
+        {
+            op: 'replace',
+            path: '/content/b/visibleToAll',
+            value: 'more updated info',
+        },
+    ]);
+
+    expect(patches2).toEqual([
+        {
+            op: 'replace',
+            path: '/content/a/visibleToAll',
+            value: 'updated public info',
+        },
+        {
+            op: 'replace',
+            path: '/content/b/visibleToAll',
+            value: 'more updated info',
+        },
+    ]);
+});
+
+test('patch of "any other" new grandchild records', () => {
+    const source: Grandparent2 = {
+        content: {
+            a: {
+                visibleToAll: 'public info',
+                visibleToSelf: 'private info',
+            },
+        }
+    };
+
+    const { proxy, createMirror } = multiFilter<Grandparent2, Grandparent2, string>(
+        source,
+        (key) => ({
+            content: {
+                [key]: {
+                    [anyOtherFields]: true,
+                },
+                [anyOtherFields]: {
+                    visibleToAll: true,
+                },
+            }
+        }
+    ));
+
+    const patches1: PatchOperation[] = [];
+    const patches2: PatchOperation[] = [];
+
+    const mirror1 = createMirror('a', (patch) => patches1.push(patch));
+
+    proxy.content.b = {
+        visibleToAll: 'public info',
+        visibleToSelf: 'private info',
+    };
+
+    const mirror2 = createMirror('b', (patch) => patches2.push(patch));
+
+    proxy.content.a.visibleToAll = 'updated public info';
+    proxy.content.b.visibleToAll = 'more updated info';
+    proxy.content.b.visibleToSelf = 'updated private info';
+
+    expect(patches1).toEqual([
+        {
+            op: 'add',
+            path: '/content/b',
+            value: {
+                visibleToAll: 'public info',
+            },
+        },
+        {
+            op: 'replace',
+            path: '/content/a/visibleToAll',
+            value: 'updated public info',
+        },
+        {
+            op: 'replace',
+            path: '/content/b/visibleToAll',
+            value: 'more updated info',
+        },
+    ]);
+
+    expect(patches2).toEqual([
+        {
+            op: 'replace',
+            path: '/content/a/visibleToAll',
+            value: 'updated public info',
+        },
+        {
+            op: 'replace',
+            path: '/content/b/visibleToAll',
+            value: 'more updated info',
+        },
+        {
+            op: 'replace',
+            path: '/content/b/visibleToSelf',
+            value: 'updated private info',
+        },
+    ]);
+});
