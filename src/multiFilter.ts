@@ -20,8 +20,6 @@ export function multiFilter<TSource extends {}, TMirror extends {}, TKey>(
         patchCallback?: (operation: PatchOperation) => void
     ) => mapping.createMirror(key, patchCallback);
     const removeMirror = (key: TKey) => mapping.removeMirror(key);
-    const substituteMirror = (key: TKey, mirror: TMirror) =>
-        mapping.substituteMirror(key, mirror);
 
     const proxy = proxyManager.getProxy(undefined, source, mapping);
 
@@ -29,6 +27,5 @@ export function multiFilter<TSource extends {}, TMirror extends {}, TKey>(
         proxy,
         createMirror,
         removeMirror,
-        substituteMirror,
     };
 }
