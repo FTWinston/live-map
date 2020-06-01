@@ -9,13 +9,11 @@ export class ProxyManager<TKey> {
     private createProxy<TSource extends {}>(
         source: TSource
     ): [TSource, Map<TKey, OperationHandler<any>>] {
-        const removeProxy = (proxy: object) => this.removeProxy(proxy);
-
         const proxyData = new Map<TKey, OperationHandler<any>>();
 
         const proxy = new Proxy(source, {
             set: (target, field: keyof TSource, val) => {
-                removeProxy(target[field] as any);
+                this.removeProxy(target[field] as any);
 
                 target[field] = val;
 
@@ -26,7 +24,7 @@ export class ProxyManager<TKey> {
                 return true;
             },
             deleteProperty: (target, field: keyof TSource) => {
-                removeProxy(target[field] as any);
+                this.removeProxy(target[field] as any);
 
                 delete target[field];
 
