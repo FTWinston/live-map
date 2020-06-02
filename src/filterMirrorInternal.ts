@@ -12,7 +12,8 @@ export function filterMirrorInternal<
     mappings: FieldMappings<TSource, TMirror>,
     key: TKey,
     proxyManager: ProxyManager<TKey>,
-    patchCallback?: (operation: PatchOperation) => void
+    patchCallback?: (operation: PatchOperation) => void,
+    reassignMirror?: (mirror: TMirror) => TMirror
 ) {
     const mapping = new MappingHandler<TSource, TMirror, TKey>(
         source,
@@ -20,7 +21,7 @@ export function filterMirrorInternal<
         proxyManager
     );
 
-    const mirror = mapping.createMirror(key, patchCallback);
+    const mirror = mapping.createMirror(key, patchCallback, reassignMirror);
 
     const proxy = proxyManager.getProxy(key, source, mapping);
 

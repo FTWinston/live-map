@@ -43,7 +43,8 @@ export class MappingHandler<TSource, TMirror, TKey>
 
     public createMirror(
         key: TKey,
-        patchCallback?: (operation: PatchOperation) => void
+        patchCallback?: (operation: PatchOperation) => void,
+        reassignMirror?: (mirror: TMirror) => TMirror
     ) {
         const setOperations = new Map<
             keyof TSource,
@@ -92,7 +93,8 @@ export class MappingHandler<TSource, TMirror, TKey>
         let mirror = this.populateNewMirror(
             setOperations,
             anyOtherSet,
-            patchCallback
+            patchCallback,
+            reassignMirror
         );
 
         this.mirrorData.set(key, {
@@ -106,10 +108,13 @@ export class MappingHandler<TSource, TMirror, TKey>
         return mirror;
     }
 
+    private initialAssignment = false;
+
     private populateNewMirror(
         setOperations: Map<keyof TSource, FieldOperation<TSource, TMirror>>,
         anyOtherSet: FieldOperation<TSource, TMirror>,
-        patchCallback?: (patch: PatchOperation) => void
+        patchCallback?: (patch: PatchOperation) => void,
+        reassignMirror?: (mirror: TMirror) => TMirror
     ) {
         let mirror = Array.isArray(this.source)
             ? (([] as unknown) as TMirror)
@@ -127,9 +132,15 @@ export class MappingHandler<TSource, TMirror, TKey>
             patcher.pause();
         }
 
+        if (reassignMirror) {
+            mirror = reassignMirror(mirror);
+        }
+
+        this.initialAssignment = true;
         for (const field in this.source) {
             this.runOperation(field, mirror, setOperations, anyOtherSet);
         }
+        this.initialAssignment = false;
 
         if (patcher) {
             patcher.resume();
@@ -174,6 +185,14 @@ export class MappingHandler<TSource, TMirror, TKey>
             setOperation = (source, field, dest) => {
                 const sourceValue = source[field];
                 const destField = (field as unknown) as keyof TMirror;
+
+                const substituteMirror = this.initialAssignment
+                    ? (mirror: TMirror[keyof TMirror]) => {
+                          dest[destField] = mirror;
+                          return dest[destField];
+                      }
+                    : undefined;
+
                 const {
                     proxy: childProxy,
                     mirror: childMirror,
@@ -189,20 +208,24 @@ export class MappingHandler<TSource, TMirror, TKey>
                         TMirror[keyof TMirror]
                     >,
                     mirrorKey,
-                    this.proxyManager
+                    this.proxyManager,
+                    undefined,
+                    substituteMirror
                 );
 
                 if (sourceValue !== childProxy) {
                     source[field] = childProxy;
                 }
-                dest[destField] = childMirror;
 
-                const destValue = dest[destField];
-
-                // If outputting patches, dest will be a proxy, and so the value we just assigned will have been replaced with a proxy.
-                // The child mapping needs to use the proxied child mirror.
-
-                childMapping.substituteMirror(mirrorKey, destValue);
+                if (!this.initialAssignment) {
+                    // If outputting patches, dest will be a proxy, and so the value we just assigned will have been replaced with a proxy.
+                    // The child mapping needs to use the proxied child mirror.
+                    dest[destField] = childMirror;
+                    const destValue = dest[destField];
+                    if (destValue !== childMirror) {
+                        childMapping.substituteMirror(mirrorKey, destValue);
+                    }
+                }
             };
             deleteOperation = (_source, key, dest) => {
                 const destField = (key as unknown) as keyof TMirror;
@@ -263,7 +286,7 @@ export class MappingHandler<TSource, TMirror, TKey>
         }
     }
 
-    public substituteMirror(key: TKey, mirror: TMirror) {
+    private substituteMirror(key: TKey, mirror: TMirror) {
         const data = this.mirrorData.get(key);
 
         if (data) {

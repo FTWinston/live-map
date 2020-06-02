@@ -730,7 +730,10 @@ test('patch of named child record', () => {
 
     const patches: PatchOperation[] = [];
 
-    const { proxy, mirror } = filterMirror<Record<string, Field>, Record<string, Field>>(
+    const { proxy, mirror } = filterMirror<
+        Record<string, Field>,
+        Record<string, Field>
+    >(
         source,
         {
             a: {
@@ -757,7 +760,7 @@ test('patch of named grandchild record', () => {
             a: {
                 field: 'hi',
             },
-        }
+        },
     };
 
     const patches: PatchOperation[] = [];
@@ -769,7 +772,7 @@ test('patch of named grandchild record', () => {
                 a: {
                     field: true,
                 },
-            }
+            },
         },
         (patch) => patches.push(patch)
     );
@@ -780,6 +783,101 @@ test('patch of named grandchild record', () => {
         {
             op: 'replace',
             path: '/content/a/field',
+            value: 'bye',
+        },
+    ]);
+});
+
+test('patch of new named child record', () => {
+    const source: Record<string, Field> = {
+        a: {
+            field: 'hi',
+        },
+    };
+
+    const patches: PatchOperation[] = [];
+
+    const { proxy, mirror } = filterMirror<
+        Record<string, Field>,
+        Record<string, Field>
+    >(
+        source,
+        {
+            a: {
+                field: true,
+            },
+            b: {
+                field: true,
+            },
+        },
+        (patch) => patches.push(patch)
+    );
+
+    proxy.b = {
+        field: 'hi',
+    };
+
+    proxy.b.field = 'bye';
+
+    expect(patches).toEqual([
+        {
+            op: 'add',
+            path: '/b',
+            value: {
+                field: 'hi',
+            },
+        },
+        {
+            op: 'replace',
+            path: '/b/field',
+            value: 'bye',
+        },
+    ]);
+});
+
+test('patch of new named grandchild record', () => {
+    const source: Grandparent = {
+        content: {
+            a: {
+                field: 'hi',
+            },
+        },
+    };
+
+    const patches: PatchOperation[] = [];
+
+    const { proxy, mirror } = filterMirror<Grandparent, Grandparent>(
+        source,
+        {
+            content: {
+                a: {
+                    field: true,
+                },
+                b: {
+                    field: true,
+                },
+            },
+        },
+        (patch) => patches.push(patch)
+    );
+
+    proxy.content.b = {
+        field: 'hi',
+    };
+
+    proxy.content.b.field = 'bye';
+
+    expect(patches).toEqual([
+        {
+            op: 'add',
+            path: '/content/b',
+            value: {
+                field: 'hi',
+            },
+        },
+        {
+            op: 'replace',
+            path: '/content/b/field',
             value: 'bye',
         },
     ]);

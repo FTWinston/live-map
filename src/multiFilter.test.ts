@@ -411,20 +411,21 @@ test('patch of simple new root fields', () => {
         a: 'blah',
     };
 
-    const { proxy, createMirror } = multiFilter<Record<string, string>, Record<string, string>, string>(
-        source,
-        (key) => ({
-            a: true,
-            b: true,
-        })
-    );
+    const { proxy, createMirror } = multiFilter<
+        Record<string, string>,
+        Record<string, string>,
+        string
+    >(source, (key) => ({
+        a: true,
+        b: true,
+    }));
 
     const patches1: PatchOperation[] = [];
     const patches2: PatchOperation[] = [];
 
     const mirror1 = createMirror('a', (patch) => patches1.push(patch));
 
-    proxy.b = 'blah'
+    proxy.b = 'blah';
 
     const mirror2 = createMirror('b', (patch) => patches2.push(patch));
 
@@ -693,25 +694,26 @@ test('patch of simple new child fields', () => {
     const source: Grandparent1 = {
         content: {
             a: 'blah',
-        }
+        },
     };
 
-    const { proxy, createMirror } = multiFilter<Grandparent1, Grandparent1, string>(
-        source,
-        (key) => ({
-            content: {
-                a: true,
-                b: true,
-            }
-        })
-    );
+    const { proxy, createMirror } = multiFilter<
+        Grandparent1,
+        Grandparent1,
+        string
+    >(source, (key) => ({
+        content: {
+            a: true,
+            b: true,
+        },
+    }));
 
     const patches1: PatchOperation[] = [];
     const patches2: PatchOperation[] = [];
 
     const mirror1 = createMirror('a', (patch) => patches1.push(patch));
 
-    proxy.content.b = 'blah'
+    proxy.content.b = 'blah';
 
     const mirror2 = createMirror('b', (patch) => patches2.push(patch));
 
@@ -745,23 +747,24 @@ interface Grandparent2 {
 
 test('patch of complex new child fields', () => {
     const source: Grandparent2 = {
-        content: {    
+        content: {
             a: {
                 visibleToAll: 'public info',
                 visibleToSelf: 'private info',
             },
-        }
+        },
     };
 
-    const { proxy, createMirror } = multiFilter<Grandparent2, Grandparent2, string>(
-        source,
-        (key) => ({
-            content: {
-                a: true,
-                b: true,
-            }
-        })
-    );
+    const { proxy, createMirror } = multiFilter<
+        Grandparent2,
+        Grandparent2,
+        string
+    >(source, (key) => ({
+        content: {
+            a: true,
+            b: true,
+        },
+    }));
 
     const patches1: PatchOperation[] = [];
     const patches2: PatchOperation[] = [];
@@ -796,22 +799,23 @@ test('patch of sub-mapped new child fields', () => {
                 visibleToAll: 'public info',
                 visibleToSelf: 'private info',
             },
-        }
+        },
     };
 
-    const { proxy, createMirror } = multiFilter<Grandparent2, Grandparent2, string>(
-        source,
-        (key) => ({
-            content: {
-                a: {
-                    visibleToAll: true,
-                },
-                b: {
-                    visibleToAll: true,
-                },
-            }
-        })
-    );
+    const { proxy, createMirror } = multiFilter<
+        Grandparent2,
+        Grandparent2,
+        string
+    >(source, (key) => ({
+        content: {
+            a: {
+                visibleToAll: true,
+            },
+            b: {
+                visibleToAll: true,
+            },
+        },
+    }));
 
     const patches1: PatchOperation[] = [];
     const patches2: PatchOperation[] = [];
@@ -854,7 +858,7 @@ test('patch of named child record', () => {
             visibleToAll: true,
         },
     }));
-    
+
     const patches: PatchOperation[] = [];
 
     const mirror = createMirror('a', (patch) => patches.push(patch));
@@ -876,19 +880,20 @@ test('patch of named grandchild record', () => {
             a: {
                 visibleToAll: 'hi',
             },
-        }
+        },
     };
 
-    const { proxy, createMirror } = multiFilter<Grandparent2, Grandparent2, string>(
-        source,
-        (key) => ({
-            content: {
-                a: {
-                    visibleToAll: true,
-                },
-            }
-        })
-    );
+    const { proxy, createMirror } = multiFilter<
+        Grandparent2,
+        Grandparent2,
+        string
+    >(source, (key) => ({
+        content: {
+            a: {
+                visibleToAll: true,
+            },
+        },
+    }));
 
     const patches: PatchOperation[] = [];
 
@@ -912,22 +917,23 @@ test('patch of named new grandchild records', () => {
                 visibleToAll: 'public info',
                 visibleToSelf: 'private info',
             },
-        }
+        },
     };
 
-    const { proxy, createMirror } = multiFilter<Grandparent2, Grandparent2, string>(
-        source,
-        (key) => ({
-            content: {
-                a: {
-                    [anyOtherFields]: true,
-                },
-                b: {
-                    visibleToAll: true,
-                },
-            }
-        })
-    );
+    const { proxy, createMirror } = multiFilter<
+        Grandparent2,
+        Grandparent2,
+        string
+    >(source, (key) => ({
+        content: {
+            a: {
+                [anyOtherFields]: true,
+            },
+            b: {
+                visibleToAll: true,
+            },
+        },
+    }));
 
     const patches1: PatchOperation[] = [];
     const patches2: PatchOperation[] = [];
@@ -986,22 +992,23 @@ test('patch of "any other" new grandchild records', () => {
                 visibleToAll: 'public info',
                 visibleToSelf: 'private info',
             },
-        }
+        },
     };
 
-    const { proxy, createMirror } = multiFilter<Grandparent2, Grandparent2, string>(
-        source,
-        (key) => ({
-            content: {
-                [key]: {
-                    [anyOtherFields]: true,
-                },
-                [anyOtherFields]: {
-                    visibleToAll: true,
-                },
-            }
-        }
-    ));
+    const { proxy, createMirror } = multiFilter<
+        Grandparent2,
+        Grandparent2,
+        string
+    >(source, (key) => ({
+        content: {
+            [key]: {
+                [anyOtherFields]: true,
+            },
+            [anyOtherFields]: {
+                visibleToAll: true,
+            },
+        },
+    }));
 
     const patches1: PatchOperation[] = [];
     const patches2: PatchOperation[] = [];
