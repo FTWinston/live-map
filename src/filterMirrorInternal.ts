@@ -22,7 +22,12 @@ export function filterMirrorInternal<
         proxyManager
     );
 
-    const mirror = mapping.createMirror(key, patchCallback, assignMirror, assignBeforePopulating);
+    const mirror = mapping.createMirror(
+        key,
+        patchCallback,
+        assignMirror,
+        assignBeforePopulating
+    );
 
     const proxy = proxyManager.getProxy(key, source, mapping);
 
