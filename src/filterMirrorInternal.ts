@@ -14,12 +14,14 @@ export function filterMirrorInternal<
     proxyManager: ProxyManager<TKey>,
     patchCallback?: (operation: PatchOperation) => void,
     assignMirror?: (mirror: TMirror) => TMirror,
-    assignBeforePopulating?: boolean
+    assignBeforePopulating?: boolean,
+    afterChange?: () => void
 ) {
     const mapping = new MappingHandler<TSource, TMirror, TKey>(
         source,
         () => mappings,
-        proxyManager
+        proxyManager,
+        afterChange
     );
 
     const mirror = mapping.createMirror(

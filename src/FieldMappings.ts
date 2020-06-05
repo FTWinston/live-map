@@ -1,5 +1,7 @@
 export const anyOtherFields = Symbol('*');
 
+export const extraFields = Symbol('+');
+
 export type FieldMappingFunction<TSource, TMirror> = (
     dest: TMirror,
     source: TSource,
@@ -7,9 +9,18 @@ export type FieldMappingFunction<TSource, TMirror> = (
 ) => void;
 
 // For all other fields, only allow boolean or nested mirroring.
-export type AnyOtherMapping<TSource, TMirror> =
+type AnyOtherMapping<TSource, TMirror> =
     | boolean
     | FieldMappings<TSource[keyof TSource], TMirror[keyof TMirror]>;
+
+export type ExtraFields<TSource, TMirror> = {
+    [P in keyof TMirror]?: ExtraField<TSource, TMirror[P]>;
+};
+
+export interface ExtraField<TSource, TValue> {
+    getValue: (source: TSource) => TValue;
+    getTriggers?: (source: TSource) => any[];
+}
 
 export type FieldMapping<TSource, TMirror> =
     | AnyOtherMapping<TSource, TMirror>
@@ -31,4 +42,5 @@ export type FieldMappings<TSource, TMirror> = {
             | FieldMappingFunction<TSource, TMirror>;
     } & {
         [anyOtherFields]?: AnyOtherMapping<TSource, TMirror>;
+        [extraFields]?: ExtraFields<TSource, TMirror>;
     };

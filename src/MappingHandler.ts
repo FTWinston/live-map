@@ -3,8 +3,10 @@ import { deepClone } from 'fast-json-patch';
 import {
     FieldMapping,
     FieldMappings,
-    anyOtherFields,
-    AnyOtherMapping,
+    anyOtherFields as anyOtherFieldsSymbol,
+    extraFields as extraFieldsSymbol,
+    ExtraField,
+    ExtraFields,
 } from './FieldMappings';
 import { filterMirrorInternal } from './filterMirrorInternal';
 import { ProxyManager } from './ProxyManager';
@@ -22,6 +24,8 @@ interface MirrorData<TSource, TMirror> {
     deleteOperations: Map<keyof TSource, FieldOperation<TSource, TMirror>>;
     anyOtherSet?: FieldOperation<TSource, TMirror>;
     anyOtherDelete?: FieldOperation<TSource, TMirror>;
+    triggerSnapshots?: Record<keyof TMirror, any[]>;
+    afterChange?: () => void;
 }
 
 export interface OperationHandler<TSource> {
@@ -38,7 +42,8 @@ export class MappingHandler<TSource, TMirror, TKey>
         private readonly getMappings: (
             key: TKey
         ) => FieldMappings<TSource, TMirror>,
-        private readonly proxyManager: ProxyManager<TKey>
+        private readonly proxyManager: ProxyManager<TKey>,
+        private readonly afterChange?: () => void
     ) {}
 
     public createMirror(
@@ -76,36 +81,63 @@ export class MappingHandler<TSource, TMirror, TKey>
             }
         }
 
-        const anyOtherValue: AnyOtherMapping<
-            TSource,
-            TMirror
-        > = (mappings as any)[anyOtherFields];
+        const anyOtherFields = mappings[anyOtherFieldsSymbol];
 
         let anyOtherSet: FieldOperation<TSource, TMirror> | undefined;
         let anyOtherDelete: FieldOperation<TSource, TMirror> | undefined;
 
-        if (anyOtherValue !== undefined && anyOtherValue !== false) {
+        if (anyOtherFields !== undefined && anyOtherFields !== false) {
             [anyOtherSet, anyOtherDelete] = this.parseFieldMapping(
                 key,
-                anyOtherValue
+                anyOtherFields
             );
         }
+
+        const extraFields = mappings[extraFieldsSymbol];
+
+        const triggerSnapshots: Record<keyof TMirror, any[]> = {} as Record<
+            keyof TMirror,
+            any[]
+        >;
 
         let mirror = this.createNewMirror(
             setOperations,
             anyOtherSet,
             patchCallback,
+            extraFields,
+            triggerSnapshots,
             assignMirror,
             assignBeforePopulating
         );
 
-        this.mirrorData.set(key, {
+        const mirrorData: MirrorData<TSource, TMirror> = {
             mirror,
             setOperations,
             deleteOperations,
             anyOtherSet,
             anyOtherDelete,
-        });
+            triggerSnapshots,
+        };
+
+        if (extraFields) {
+
+            mirrorData.afterChange = () => {
+                for (const destField in extraFields) {
+                    const extraField = extraFields[destField];
+                    this.tryAssignExtraField(mirrorData, destField, extraField);
+                }
+
+                // Bubble up to any parent mappings.
+                if (this.afterChange) {
+                    this.afterChange();
+                }
+            };
+        } else if (this.afterChange) {
+            // Bubble up to any parent mappings, even if we don't have extraFields here.
+            mirrorData.afterChange = this.afterChange;
+        }
+
+        this.mirrorData.set(key, mirrorData);
 
         return mirror;
     }
@@ -116,6 +148,8 @@ export class MappingHandler<TSource, TMirror, TKey>
         setOperations: Map<keyof TSource, FieldOperation<TSource, TMirror>>,
         anyOtherSet: FieldOperation<TSource, TMirror>,
         patchCallback?: (patch: PatchOperation) => void,
+        extraFields?: ExtraFields<TSource, TMirror>,
+        triggerSnapshots?: Record<keyof TMirror, any[]>,
         assignMirror?: (mirror: TMirror) => TMirror,
         assignBeforePopulating?: boolean
     ) {
@@ -140,9 +174,28 @@ export class MappingHandler<TSource, TMirror, TKey>
         }
 
         this.initialAssignment = true;
+
         for (const field in this.source) {
             this.runOperation(field, mirror, setOperations, anyOtherSet);
         }
+
+        if (extraFields) {
+            for (const destField in extraFields) {
+                const extraField = extraFields[destField];
+                const triggers = extraField.getTriggers
+                    ? extraField.getTriggers(this.source)
+                    : undefined;
+
+                this.assignExtraField(
+                    mirror,
+                    triggerSnapshots,
+                    destField,
+                    extraField,
+                    triggers
+                );
+            }
+        }
+
         this.initialAssignment = false;
 
         if (assignMirror && !assignBeforePopulating) {
@@ -154,6 +207,53 @@ export class MappingHandler<TSource, TMirror, TKey>
         }
 
         return mirror;
+    }
+
+    private arraysMatch(arr1: any[], arr2: any[]) {
+        if (arr1.length !== arr2.length) {
+            return false;
+        }
+
+        for (let i = 0; i < arr1.length; i++) {
+            if (arr1[i] !== arr2[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private tryAssignExtraField(
+        mirrorData: MirrorData<TSource, TMirror>,
+        destField: Extract<keyof TMirror, string>,
+        extraField: ExtraField<TSource, TMirror[keyof TMirror]>
+    ) {
+        const newTriggers = extraField.getTriggers(this.source);
+        const oldTriggers = mirrorData.triggerSnapshots[destField];
+
+        if (!this.arraysMatch(newTriggers, oldTriggers)) {
+            return;
+        }
+
+        this.assignExtraField(
+            mirrorData.mirror,
+            mirrorData.triggerSnapshots,
+            destField,
+            extraField,
+            newTriggers
+        );
+    }
+
+    private assignExtraField(
+        mirror: TMirror,
+        triggerSnapshots: Record<keyof TMirror, any[]>,
+        destField: keyof TMirror,
+        extraField: ExtraField<TSource, TMirror[keyof TMirror]>,
+        triggers: any[]
+    ) {
+        const value = extraField.getValue(this.source);
+        mirror[destField] = value as any;
+        triggerSnapshots[destField] = triggers;
     }
 
     private tidyPatch(operation: PatchOperation) {
@@ -198,11 +298,7 @@ export class MappingHandler<TSource, TMirror, TKey>
                     return dest[destField];
                 };
 
-                const {
-                    proxy: childProxy,
-                    mirror: childMirror,
-                    mapping: childMapping,
-                } = filterMirrorInternal<
+                const { proxy: childProxy } = filterMirrorInternal<
                     TSource[keyof TSource],
                     TMirror[keyof TMirror],
                     TKey
@@ -216,7 +312,15 @@ export class MappingHandler<TSource, TMirror, TKey>
                     this.proxyManager,
                     undefined,
                     substituteMirror,
-                    this.initialAssignment
+                    this.initialAssignment,
+                    // This seems too complex. Can we simplify?
+                    () => {
+                        for (const [, mirrorData] of this.mirrorData) {
+                            if (mirrorData.afterChange) {
+                                mirrorData.afterChange();
+                            }
+                        }
+                    }
                 );
 
                 if (sourceValue !== childProxy) {
@@ -255,16 +359,32 @@ export class MappingHandler<TSource, TMirror, TKey>
     }
 
     public setField(field: keyof TSource, val: TSource[keyof TSource]) {
-        for (const [, { mirror, setOperations, anyOtherSet }] of this
-            .mirrorData) {
-            this.runOperation(field, mirror, setOperations, anyOtherSet);
+        for (const [
+            ,
+            { mirror, setOperations, anyOtherSet, afterChange },
+        ] of this.mirrorData) {
+            this.runOperation(
+                field,
+                mirror,
+                setOperations,
+                anyOtherSet,
+                afterChange
+            );
         }
     }
 
     public deleteField(field: keyof TSource) {
-        for (const [, { mirror, deleteOperations, anyOtherDelete }] of this
-            .mirrorData) {
-            this.runOperation(field, mirror, deleteOperations, anyOtherDelete);
+        for (const [
+            ,
+            { mirror, deleteOperations, anyOtherDelete, afterChange },
+        ] of this.mirrorData) {
+            this.runOperation(
+                field,
+                mirror,
+                deleteOperations,
+                anyOtherDelete,
+                afterChange
+            );
         }
     }
 
@@ -272,13 +392,20 @@ export class MappingHandler<TSource, TMirror, TKey>
         field: keyof TSource,
         mirror: TMirror,
         operations: Map<keyof TSource, FieldOperation<TSource, TMirror>>,
-        fallback?: FieldOperation<TSource, TMirror>
+        fallback?: FieldOperation<TSource, TMirror>,
+        runAfter?: () => void
     ) {
         const operation = operations.get(field);
         if (operation) {
             operation(this.source, field, mirror);
         } else if (fallback) {
             fallback(this.source, field, mirror);
+        } else {
+            return;
+        }
+
+        if (runAfter) {
+            runAfter();
         }
     }
 }
