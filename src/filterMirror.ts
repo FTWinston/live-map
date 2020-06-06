@@ -8,8 +8,8 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
     mappings: FieldMappings<TSource, TMirror>,
     patchCallback?: (operation: PatchOperation) => void
 ): {
-    proxy: TSource,
-    mirror: TMirror,
+    proxy: TSource;
+    mirror: TMirror;
 } {
     const proxyManager = new ProxyManager<string>();
 
@@ -24,5 +24,5 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
     return {
         proxy: filterData.proxy,
         mirror: filterData.mirror,
-    }
+    };
 }

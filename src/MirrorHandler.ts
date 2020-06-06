@@ -96,7 +96,11 @@ export class MirrorHandler<TSource, TMirror, TKey> {
             );
         }
 
-        this.mirror = this.createMirror(extraFields, assignMirror, assignBeforePopulating);
+        this.mirror = this.createMirror(
+            extraFields,
+            assignMirror,
+            assignBeforePopulating
+        );
     }
 
     private initialAssignment = false;
@@ -129,6 +133,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
         this.initialAssignment = true;
 
         for (const field in this.sourceHandler.source) {
+            // Don't allow afterChange to run, because mirror hasn't yet been assigned.
             this.runOperation(
                 field,
                 mirror,
@@ -141,7 +146,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
             for (const destField in extraFields) {
                 const extraField = extraFields[destField];
                 const triggers = extraField.getTriggers
-                    ? extraField.getTriggers(this.sourceHandler.source)
+                    ? extraField.getTriggers(this.sourceHandler.source).slice()
                     : undefined;
 
                 this.assignExtraField(mirror, destField, extraField, triggers);
@@ -161,8 +166,8 @@ export class MirrorHandler<TSource, TMirror, TKey> {
         return mirror;
     }
 
-    private arraysMatch(arr1: any[], arr2: any[]) {
-        if (arr1.length !== arr2.length) {
+    private arraysMatch(arr1: any[], arr2: any[] | undefined) {
+        if (!arr2 || arr1.length !== arr2.length) {
             return false;
         }
 
@@ -179,10 +184,12 @@ export class MirrorHandler<TSource, TMirror, TKey> {
         destField: Extract<keyof TMirror, string>,
         extraField: ExtraField<TSource, TMirror[keyof TMirror]>
     ) {
-        const newTriggers = extraField.getTriggers(this.sourceHandler.source);
+        const newTriggers = extraField
+            .getTriggers(this.sourceHandler.source)
+            .slice();
         const oldTriggers = this.triggerSnapshots[destField];
 
-        if (!this.arraysMatch(newTriggers, oldTriggers)) {
+        if (this.arraysMatch(newTriggers, oldTriggers)) {
             return;
         }
 
@@ -295,7 +302,8 @@ export class MirrorHandler<TSource, TMirror, TKey> {
             field,
             this.mirror,
             this.setOperations,
-            this.anyOtherSet
+            this.anyOtherSet,
+            this.afterChange
         );
     }
 
@@ -304,7 +312,8 @@ export class MirrorHandler<TSource, TMirror, TKey> {
             field,
             this.mirror,
             this.deleteOperations,
-            this.anyOtherDelete
+            this.anyOtherDelete,
+            this.afterChange
         );
     }
 
@@ -312,7 +321,8 @@ export class MirrorHandler<TSource, TMirror, TKey> {
         field: keyof TSource,
         mirror: TMirror,
         operations: Map<keyof TSource, FieldOperation<TSource, TMirror>>,
-        fallback?: FieldOperation<TSource, TMirror>
+        fallback?: FieldOperation<TSource, TMirror>,
+        afterChange?: () => void
     ) {
         const operation = operations.get(field);
         if (operation) {
@@ -323,8 +333,8 @@ export class MirrorHandler<TSource, TMirror, TKey> {
             return;
         }
 
-        if (this.afterChange) {
-            this.afterChange();
+        if (afterChange) {
+            afterChange();
         }
     }
 }

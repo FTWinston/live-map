@@ -38,7 +38,7 @@ export class SourceHandler<TSource, TMirror, TKey>
             patchCallback,
             assignMirror,
             assignBeforePopulating,
-            this.afterChange,
+            this.afterChange
         );
 
         this.mirrorHandlers.set(key, handler);
