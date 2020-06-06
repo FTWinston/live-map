@@ -20,7 +20,7 @@ export class SourceHandler<TSource, TMirror, TKey>
         private readonly getMappings: (
             key: TKey
         ) => FieldMappings<TSource, TMirror>,
-        private readonly proxyManager: ProxyManager<TKey>,
+        public readonly proxyManager: ProxyManager<TKey>,
         private readonly afterChange?: () => void
     ) {}
 
@@ -34,7 +34,6 @@ export class SourceHandler<TSource, TMirror, TKey>
             key,
             this,
             this.getMappings(key),
-            this.proxyManager, // TODO: do we need to pass this?
             patchCallback,
             assignMirror,
             assignBeforePopulating,
@@ -53,13 +52,13 @@ export class SourceHandler<TSource, TMirror, TKey>
 
     public setField(field: keyof TSource, val: TSource[keyof TSource]) {
         for (const [, mirrorHandler] of this.mirrorHandlers) {
-            mirrorHandler.runSetOperation(field, val); // TODO: pass afterChange?
+            mirrorHandler.runSetOperation(field, val);
         }
     }
 
     public deleteField(field: keyof TSource) {
         for (const [, mirrorHandler] of this.mirrorHandlers) {
-            mirrorHandler.runDeleteOperation(field); // TODO: pass afterChange?
+            mirrorHandler.runDeleteOperation(field);
         }
     }
 }

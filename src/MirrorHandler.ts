@@ -9,7 +9,6 @@ import {
     ExtraFields,
 } from './FieldMappings';
 import { filterMirrorInternal } from './filterMirrorInternal';
-import { ProxyManager } from './ProxyManager';
 import { PatchOperation } from './PatchOperation';
 import { SourceHandler } from './SourceHandler';
 
@@ -43,7 +42,6 @@ export class MirrorHandler<TSource, TMirror, TKey> {
         private readonly key: TKey,
         private readonly sourceHandler: SourceHandler<TSource, TMirror, TKey>,
         mappings: FieldMappings<TSource, TMirror>,
-        private readonly proxyManager: ProxyManager<TKey>,
         private readonly patchCallback?: (operation: PatchOperation) => void,
         assignMirror?: (mirror: TMirror) => TMirror,
         assignBeforePopulating: boolean = false,
@@ -255,7 +253,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
                         TMirror[keyof TMirror]
                     >,
                     mirrorKey,
-                    this.proxyManager,
+                    this.sourceHandler.proxyManager,
                     undefined,
                     substituteMirror,
                     this.initialAssignment,
