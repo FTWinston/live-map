@@ -1,6 +1,6 @@
 import { ProxyManager } from './ProxyManager';
 import { FieldMappings } from './FieldMappings';
-import { MappingHandler } from './MappingHandler';
+import { SourceHandler } from './SourceHandler';
 import { PatchOperation } from './PatchOperation';
 
 export function filterMirrorInternal<
@@ -17,25 +17,25 @@ export function filterMirrorInternal<
     assignBeforePopulating?: boolean,
     afterChange?: () => void
 ) {
-    const mapping = new MappingHandler<TSource, TMirror, TKey>(
+    const sourceHandler = new SourceHandler<TSource, TMirror, TKey>(
         source,
         () => mappings,
         proxyManager,
         afterChange
     );
 
-    const mirror = mapping.createMirror(
+    const mirrorHandler = sourceHandler.createMirror(
         key,
         patchCallback,
         assignMirror,
         assignBeforePopulating
     );
 
-    const proxy = proxyManager.getProxy(key, source, mapping);
+    const proxy = proxyManager.getProxy(key, source, sourceHandler);
 
     return {
         proxy,
-        mirror,
-        mapping,
+        mirror: mirrorHandler.mirror,
+        mapping: sourceHandler,
     };
 }

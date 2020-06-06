@@ -1,4 +1,4 @@
-import { OperationHandler } from './MappingHandler';
+import { OperationHandler } from './SourceHandler';
 
 export class ProxyManager<TKey> {
     private readonly proxyData = new Map<
