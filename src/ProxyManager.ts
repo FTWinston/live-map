@@ -1,15 +1,15 @@
-import { OperationHandler } from './SourceHandler';
+import { ISourceHandler } from './SourceHandler';
 
 export class ProxyManager<TKey> {
     private readonly proxyData = new Map<
         object,
-        Map<TKey, OperationHandler<any>>
+        Map<TKey, ISourceHandler<any>>
     >();
 
     private createProxy<TSource extends {}>(
         source: TSource
-    ): [TSource, Map<TKey, OperationHandler<any>>] {
-        const proxyData = new Map<TKey, OperationHandler<any>>();
+    ): [TSource, Map<TKey, ISourceHandler<any>>] {
+        const proxyData = new Map<TKey, ISourceHandler<any>>();
 
         const proxy = new Proxy(source, {
             set: (target, field: keyof TSource, val) => {
@@ -43,20 +43,19 @@ export class ProxyManager<TKey> {
 
     public getProxy<TSource extends {}>(
         key: TKey | undefined,
-        source: TSource,
-        mapping: OperationHandler<TSource>
+        handler: ISourceHandler<TSource>
     ): TSource {
         // If source is already a managed proxy, record the new operations and return it.
 
         let proxy: TSource;
-        let proxyData = this.proxyData.get(source);
+        let proxyData = this.proxyData.get(handler.source);
         if (proxyData !== undefined) {
-            proxy = source;
+            proxy = handler.source;
         } else {
-            [proxy, proxyData] = this.createProxy(source);
+            [proxy, proxyData] = this.createProxy(handler.source);
         }
 
-        proxyData.set(key, mapping);
+        proxyData.set(key, handler);
 
         return proxy;
     }

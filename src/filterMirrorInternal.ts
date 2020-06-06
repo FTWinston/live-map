@@ -31,7 +31,7 @@ export function filterMirrorInternal<
         assignBeforePopulating
     );
 
-    const proxy = proxyManager.getProxy(key, source, sourceHandler);
+    const proxy = proxyManager.getProxy(key, sourceHandler);
 
     return {
         proxy,

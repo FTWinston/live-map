@@ -9,7 +9,7 @@ export function multiFilter<TSource extends {}, TMirror extends {}, TKey>(
 ) {
     const proxyManager = new ProxyManager<TKey>();
 
-    const mapping = new SourceHandler<TSource, TMirror, TKey>(
+    const sourceHandler = new SourceHandler<TSource, TMirror, TKey>(
         source,
         getMappings,
         proxyManager
@@ -18,10 +18,11 @@ export function multiFilter<TSource extends {}, TMirror extends {}, TKey>(
     const createMirror = (
         key: TKey,
         patchCallback?: (operation: PatchOperation) => void
-    ) => mapping.createMirror(key, patchCallback).mirror;
-    const removeMirror = (key: TKey) => mapping.removeMirror(key);
+    ) => sourceHandler.createMirror(key, patchCallback).mirror;
+    
+    const removeMirror = (key: TKey) => sourceHandler.removeMirror(key);
 
-    const proxy = proxyManager.getProxy(undefined, source, mapping);
+    const proxy = proxyManager.getProxy(undefined, sourceHandler);
 
     return {
         proxy,

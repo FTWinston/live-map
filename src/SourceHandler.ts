@@ -3,13 +3,14 @@ import { ProxyManager } from './ProxyManager';
 import { PatchOperation } from './PatchOperation';
 import { MirrorHandler } from './MirrorHandler';
 
-export interface OperationHandler<TSource> {
+export interface ISourceHandler<TSource> {
+    readonly source: TSource;
     setField(field: keyof TSource, val: TSource[keyof TSource]): void;
     deleteField(field: keyof TSource): void;
 }
 
 export class SourceHandler<TSource, TMirror, TKey>
-    implements OperationHandler<TSource> {
+    implements ISourceHandler<TSource> {
     private readonly mirrorHandlers = new Map<
         TKey,
         MirrorHandler<TSource, TMirror, TKey>
