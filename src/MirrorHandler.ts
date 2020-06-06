@@ -49,7 +49,25 @@ export class MirrorHandler<TSource, TMirror, TKey> {
         assignBeforePopulating: boolean = false,
         private readonly afterChange?: () => void
     ) {
-        // Gather setOperations and deleteOperations
+        // Ensure that afterChange event is set up before parsing mappings.
+        const extraFields = mappings[extraFieldsSymbol];
+
+        if (extraFields) {
+            const bubbleUp = afterChange;
+            this.afterChange = () => {
+                for (const destField in extraFields) {
+                    const extraField = extraFields[destField];
+                    this.tryAssignExtraField(destField, extraField);
+                }
+
+                // Bubble up to any parent mappings.
+                if (bubbleUp) {
+                    bubbleUp();
+                }
+            };
+        }
+
+        // Gather setOperations and deleteOperations.
         for (const field in mappings) {
             const filterValue =
                 mappings[field as keyof FieldMappings<TSource, TMirror>];
@@ -67,7 +85,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
             }
         }
 
-        // Determine anyOtherSet and anyOtherDelete
+        // Determine anyOtherSet and anyOtherDelete.
         const anyOtherFields = mappings[anyOtherFieldsSymbol];
 
         let anyOtherSet: FieldOperation<TSource, TMirror> | undefined;
@@ -80,30 +98,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
             );
         }
 
-        const extraFields = mappings[extraFieldsSymbol];
-
         this.mirror = this.createMirror(extraFields, assignMirror, assignBeforePopulating);
-
-        if (extraFields) {
-            // mirrorData.afterChange is what i want to set MappingHandler.afterChange to
-            // but one MappingHandler can have multiple mirrors, though only at the top level.
-            // Could a top level one just call this for all its mirrors?
-            // Well it kinda could, but how would it know if it should?
-            // Should mirrorData become a big class of its own?
-
-            const bubbleUp = afterChange;
-            this.afterChange = () => {
-                for (const destField in extraFields) {
-                    const extraField = extraFields[destField];
-                    this.tryAssignExtraField(destField, extraField);
-                }
-
-                // Bubble up to any parent mappings.
-                if (bubbleUp) {
-                    bubbleUp();
-                }
-            };
-        }
     }
 
     private initialAssignment = false;
