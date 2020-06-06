@@ -36,6 +36,5 @@ export function filterMirrorInternal<
     return {
         proxy,
         mirror: mirrorHandler.mirror,
-        mapping: sourceHandler,
     };
 }

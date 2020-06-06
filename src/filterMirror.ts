@@ -7,14 +7,22 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
     source: TSource,
     mappings: FieldMappings<TSource, TMirror>,
     patchCallback?: (operation: PatchOperation) => void
-) {
+): {
+    proxy: TSource,
+    mirror: TMirror,
+} {
     const proxyManager = new ProxyManager<string>();
 
-    return filterMirrorInternal<TSource, TMirror, string>(
+    const filterData = filterMirrorInternal<TSource, TMirror, string>(
         source,
         mappings,
         '',
         proxyManager,
         patchCallback
     );
+
+    return {
+        proxy: filterData.proxy,
+        mirror: filterData.mirror,
+    }
 }
