@@ -18,7 +18,7 @@ export function multiFilter<TSource extends {}, TMirror extends {}, TKey>(
     const createMirror = (
         key: TKey,
         patchCallback?: (operation: PatchOperation) => void
-    ) => sourceHandler.createMirror(key, patchCallback).mirror;
+    ) => sourceHandler.createMirror(key, patchCallback);
 
     const removeMirror = (key: TKey) => sourceHandler.removeMirror(key);
 

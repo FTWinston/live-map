@@ -46,7 +46,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
         mappings: FieldMappings<TSource, TMirror>,
         private readonly patchCallback?: (operation: PatchOperation) => void,
         assignMirror?: (mirror: TMirror) => TMirror,
-        assignBeforePopulating: boolean = false,
+        assignBeforePopulating: boolean = false
     ) {
         // Ensure that afterChange event is set up before parsing mappings.
         const extraFields = mappings[extraFieldsSymbol];

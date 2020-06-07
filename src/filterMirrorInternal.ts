@@ -24,17 +24,17 @@ export function filterMirrorInternal<
         afterChange
     );
 
-    const mirrorHandler = sourceHandler.createMirror(
+    const proxy = proxyManager.getProxy(key, sourceHandler);
+
+    const mirror = sourceHandler.createMirror(
         key,
         patchCallback,
         assignMirror,
         assignBeforePopulating
     );
 
-    const proxy = proxyManager.getProxy(key, sourceHandler);
-
     return {
         proxy,
-        mirror: mirrorHandler.mirror,
+        mirror,
     };
 }

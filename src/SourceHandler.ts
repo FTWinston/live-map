@@ -30,19 +30,19 @@ export class SourceHandler<TSource, TMirror, TKey>
         patchCallback?: (operation: PatchOperation) => void,
         assignMirror?: (mirror: TMirror) => TMirror,
         assignBeforePopulating?: boolean
-    ): MirrorHandler<TSource, TMirror, TKey> {
+    ): TMirror {
         const handler = new MirrorHandler<TSource, TMirror, TKey>(
             key,
             this,
             this.getMappings(key),
             patchCallback,
             assignMirror,
-            assignBeforePopulating,
+            assignBeforePopulating
         );
 
         this.mirrorHandlers.set(key, handler);
 
-        return handler;
+        return handler.mirror;
     }
 
     public removeMirror(key: TKey) {
