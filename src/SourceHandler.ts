@@ -7,6 +7,7 @@ export interface ISourceHandler<TSource> {
     readonly source: TSource;
     setField(field: keyof TSource, val: TSource[keyof TSource]): void;
     deleteField(field: keyof TSource): void;
+    unmappedDescendantChanged(): void;
 }
 
 export class SourceHandler<TSource, TMirror, TKey>
@@ -65,6 +66,18 @@ export class SourceHandler<TSource, TMirror, TKey>
             mirrorHandler.runDeleteOperation(field);
         }
 
+        if (this.afterChange) {
+            this.afterChange();
+        }
+    }
+
+    public unmappedDescendantChanged() {
+        for (const [, mirrorHandler] of this.mirrorHandlers) {
+            if (mirrorHandler.afterChange) {
+                mirrorHandler.afterChange();
+            }
+        }
+        
         if (this.afterChange) {
             this.afterChange();
         }

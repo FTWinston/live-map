@@ -33,7 +33,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
     private readonly anyOtherSet?: FieldOperation<TSource, TMirror>;
     private readonly anyOtherDelete?: FieldOperation<TSource, TMirror>;
 
-    private readonly afterChange?: () => void;
+    public readonly afterChange?: () => void;
 
     private readonly triggerSnapshots: Record<
         keyof TMirror,

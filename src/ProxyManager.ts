@@ -6,21 +6,33 @@ export class ProxyManager<TKey> {
         Map<TKey, ISourceHandler<any>>
     >();
 
+    private readonly proxyParents = new Map<object, object>();
+
     private createProxy<TSource extends {}>(
         source: TSource
     ): [TSource, Map<TKey, ISourceHandler<any>>] {
-        const proxyData = new Map<TKey, ISourceHandler<any>>();
+        const sourceHandlers = new Map<TKey, ISourceHandler<any>>();
 
         const proxy = new Proxy(source, {
             set: (target, field: keyof TSource, val) => {
                 this.removeProxy(target[field] as any);
 
-                target[field] = val;
-
-                for (const [, keyOperations] of proxyData) {
-                    keyOperations.setField(field, val);
+                // Before assigning, replace val (and its descendents) with a proxy, so we can detect any changes.
+                if (this.canProxy(val)) {
+                    [val] = this.createProxy(val);
+                    this.proxyParents.set(val, proxy);
                 }
 
+                target[field] = val;
+
+                for (const [, sourceHandler] of sourceHandlers) {
+                    sourceHandler.setField(field, val);
+                }
+
+                if (sourceHandlers.size === 0) {
+                    this.updateClosestAncestorSourceHandlers(proxy);
+                }
+                
                 return true;
             },
             deleteProperty: (target, field: keyof TSource) => {
@@ -28,17 +40,32 @@ export class ProxyManager<TKey> {
 
                 delete target[field];
 
-                for (const [, keyOperations] of proxyData) {
-                    keyOperations.deleteField(field);
+                for (const [, sourceHandler] of sourceHandlers) {
+                    sourceHandler.deleteField(field);
+                }
+
+                if (sourceHandlers.size === 0) {
+                    this.updateClosestAncestorSourceHandlers(proxy);
                 }
 
                 return true;
             },
         });
 
-        this.proxyData.set(proxy, proxyData);
+        this.proxyData.set(proxy, sourceHandlers);
 
-        return [proxy, proxyData];
+        // Recursively call createProxy for all proxiable fields of source, and substitute them.
+        for (const key in source) {
+            let val = source[key];
+
+            if (this.canProxy(val)) {
+                [val] = this.createProxy(val);
+                this.proxyParents.set(val as any, proxy);
+                source[key] = val;
+            }
+        }
+
+        return [proxy, sourceHandlers];
     }
 
     public getProxy<TSource extends {}>(
@@ -48,22 +75,52 @@ export class ProxyManager<TKey> {
         // If source is already a managed proxy, record the new operations and return it.
 
         let proxy: TSource;
-        let proxyData = this.proxyData.get(handler.source);
-        if (proxyData !== undefined) {
+        let sourceHandlers = this.proxyData.get(handler.source);
+
+        if (sourceHandlers !== undefined) {
             proxy = handler.source;
         } else {
-            [proxy, proxyData] = this.createProxy(handler.source);
+            [proxy, sourceHandlers] = this.createProxy(handler.source);
         }
 
-        proxyData.set(key, handler);
+        sourceHandlers.set(key, handler);
 
         return proxy;
+    }
+
+    private updateClosestAncestorSourceHandlers(proxy: object) {
+        let handlers: Map<TKey, ISourceHandler<any>>;
+
+        do {
+            proxy = this.proxyParents.get(proxy);
+            if (!proxy) {
+                return;
+            }
+
+            handlers = this.proxyData.get(proxy);
+        }
+        while (handlers.size === 0);
+
+        for (const [, handler] of handlers) {
+            handler.unmappedDescendantChanged();
+        }
+    }
+
+    private canProxy(object: any) {
+        if (this.proxyData.has(object)) {
+            return false;
+        }
+
+        const type = typeof object;
+        return type === 'function' || (type === 'object' && !!object);
     }
 
     public removeProxy(proxy: object) {
         if (!this.proxyData.delete(proxy)) {
             return;
         }
+
+        this.proxyParents.delete(proxy);
 
         // We need to also remove any proxies that were below this one in the hierarchy,
         // because this manager stores data for ALL proxies.

@@ -13,16 +13,11 @@ export function filterMirror<TSource extends {}, TMirror extends {}>(
 } {
     const proxyManager = new ProxyManager<string>();
 
-    const filterData = filterMirrorInternal<TSource, TMirror, string>(
+    return filterMirrorInternal<TSource, TMirror, string>(
         source,
         mappings,
         '',
         proxyManager,
         patchCallback
     );
-
-    return {
-        proxy: filterData.proxy,
-        mirror: filterData.mirror,
-    };
 }
