@@ -46,6 +46,70 @@ test('maps array length changes, when array is also mapped', () => {
     expect(mirror.length).toEqual(5);
 });
 
+test("maps array replacement, when array isn't also mapped", () => {
+    const source: ArrayHolder = {
+        array: ['hello', 'goodbye', 'howdy', 'hey', 'hi'],
+    };
+
+    const { proxy, mirror } = filterMirror<ArrayHolder, Counter>(source, {
+        [extraFields]: {
+            length: {
+                getValue: (source) => source.array.length,
+                getTriggers: (source) => source.array,
+            },
+        },
+    });
+
+    expect(proxy).toEqual({
+        array: ['hello', 'goodbye', 'howdy', 'hey', 'hi'],
+    });
+
+    expect(mirror).toEqual({
+        length: 5,
+    });
+
+    proxy.array = ['a', 'b', 'c'];
+
+    expect(mirror).toEqual({
+        length: 3,
+    });
+});
+
+test("maps array replacement and changes, when array isn't also mapped", () => {
+    const source: ArrayHolder = {
+        array: ['hello', 'goodbye', 'howdy', 'hey', 'hi'],
+    };
+
+    const { proxy, mirror } = filterMirror<ArrayHolder, Counter>(source, {
+        [extraFields]: {
+            length: {
+                getValue: (source) => source.array.length,
+                getTriggers: (source) => source.array,
+            },
+        },
+    });
+
+    expect(proxy).toEqual({
+        array: ['hello', 'goodbye', 'howdy', 'hey', 'hi'],
+    });
+
+    expect(mirror).toEqual({
+        length: 5,
+    });
+
+    proxy.array = ['a', 'b', 'c'];
+
+    expect(mirror).toEqual({
+        length: 3,
+    });
+
+    proxy.array.push('4');
+
+    expect(mirror).toEqual({
+        length: 4,
+    });
+});
+
 test("maps array length changes, when array isn't also mapped", () => {
     const source: ArrayHolder = {
         array: ['hello', 'goodbye', 'howdy', 'hey', 'hi'],

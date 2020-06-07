@@ -329,8 +329,6 @@ export class MirrorHandler<TSource, TMirror, TKey> {
             operation(this.sourceHandler.source, field, mirror);
         } else if (fallback) {
             fallback(this.sourceHandler.source, field, mirror);
-        } else {
-            return;
         }
 
         if (afterChange) {
