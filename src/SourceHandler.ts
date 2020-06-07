@@ -38,7 +38,6 @@ export class SourceHandler<TSource, TMirror, TKey>
             patchCallback,
             assignMirror,
             assignBeforePopulating,
-            this.afterChange
         );
 
         this.mirrorHandlers.set(key, handler);
@@ -55,11 +54,19 @@ export class SourceHandler<TSource, TMirror, TKey>
         for (const [, mirrorHandler] of this.mirrorHandlers) {
             mirrorHandler.runSetOperation(field, val);
         }
+
+        if (this.afterChange) {
+            this.afterChange();
+        }
     }
 
     public deleteField(field: keyof TSource) {
         for (const [, mirrorHandler] of this.mirrorHandlers) {
             mirrorHandler.runDeleteOperation(field);
+        }
+
+        if (this.afterChange) {
+            this.afterChange();
         }
     }
 }

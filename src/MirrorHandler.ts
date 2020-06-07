@@ -33,6 +33,8 @@ export class MirrorHandler<TSource, TMirror, TKey> {
     private readonly anyOtherSet?: FieldOperation<TSource, TMirror>;
     private readonly anyOtherDelete?: FieldOperation<TSource, TMirror>;
 
+    private readonly afterChange?: () => void;
+
     private readonly triggerSnapshots: Record<
         keyof TMirror,
         any[]
@@ -45,22 +47,15 @@ export class MirrorHandler<TSource, TMirror, TKey> {
         private readonly patchCallback?: (operation: PatchOperation) => void,
         assignMirror?: (mirror: TMirror) => TMirror,
         assignBeforePopulating: boolean = false,
-        private readonly afterChange?: () => void
     ) {
         // Ensure that afterChange event is set up before parsing mappings.
         const extraFields = mappings[extraFieldsSymbol];
 
         if (extraFields) {
-            const bubbleUp = afterChange;
             this.afterChange = () => {
                 for (const destField in extraFields) {
                     const extraField = extraFields[destField];
                     this.tryAssignExtraField(destField, extraField);
-                }
-
-                // Bubble up to any parent mappings.
-                if (bubbleUp) {
-                    bubbleUp();
                 }
             };
         }
