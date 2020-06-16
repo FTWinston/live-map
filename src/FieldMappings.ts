@@ -25,12 +25,13 @@ export interface ExtraField<TSource, TValue> {
     getTriggers?: (source: TSource) => any[];
 }
 
-export type FieldMapping<TSource, TMirror> =
-    | AnyOtherMapping<TSource, TMirror>
+export type FieldMappingValue<TSource, TMirror> =
+    | boolean
     | keyof TMirror
+    | FieldMappings<valuesOf<TSource>, valuesOf<TMirror>>
     | FieldMappingFunction<TSource, TMirror>;
 
-export type FieldMappings<TSource, TMirror> = {
+export type FieldMappingsWithoutSymbols<TSource, TMirror> = {
     // Allow boolean, string remapping, nested mirroring and mapping functions for keys present in both types.
     [P in Extract<keyof TSource, keyof TMirror>]?:
         | boolean
@@ -43,7 +44,12 @@ export type FieldMappings<TSource, TMirror> = {
         [P in Exclude<keyof TSource, keyof TMirror>]?:
             | keyof TMirror
             | FieldMappingFunction<TSource, TMirror>;
-    } & {
-        [anyOtherFields]?: AnyOtherMapping<TSource, TMirror>;
-        [extraFields]?: ExtraFields<TSource, TMirror>;
     };
+
+export type FieldMappings<TSource, TMirror> = FieldMappingsWithoutSymbols<
+    TSource,
+    TMirror
+> & {
+    [anyOtherFields]?: AnyOtherMapping<TSource, TMirror>;
+    [extraFields]?: ExtraFields<TSource, TMirror>;
+};

@@ -1,8 +1,9 @@
 import { JSONPatcherProxy } from 'jsonpatcherproxy';
 import { deepClone } from 'fast-json-patch';
 import {
-    FieldMapping,
     FieldMappings,
+    FieldMappingsWithoutSymbols,
+    FieldMappingValue,
     anyOtherFields as anyOtherFieldsSymbol,
     extraFields as extraFieldsSymbol,
     ExtraField,
@@ -63,7 +64,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
         // Gather setOperations and deleteOperations.
         for (const field in mappings) {
             const filterValue =
-                mappings[field as keyof FieldMappings<TSource, TMirror>];
+                mappings[field as keyof FieldMappingsWithoutSymbols<TSource, TMirror>];
             const sourceKey = field as keyof TSource;
 
             const [setOperation, deleteOperation] = this.parseFieldMapping(
@@ -215,7 +216,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
 
     private parseFieldMapping(
         mirrorKey: TKey,
-        filterValue: FieldMapping<TSource, TMirror>
+        filterValue: FieldMappingValue<TSource, TMirror>
     ): [
         FieldOperation<TSource, TMirror>,
         FieldOperation<TSource, TMirror> | undefined
