@@ -77,7 +77,7 @@ export class SourceHandler<TSource, TMirror, TKey>
                 mirrorHandler.afterChange();
             }
         }
-        
+
         if (this.afterChange) {
             this.afterChange();
         }

@@ -32,7 +32,7 @@ export class ProxyManager<TKey> {
                 if (sourceHandlers.size === 0) {
                     this.updateClosestAncestorSourceHandlers(proxy);
                 }
-                
+
                 return true;
             },
             deleteProperty: (target, field: keyof TSource) => {
@@ -98,8 +98,7 @@ export class ProxyManager<TKey> {
             }
 
             handlers = this.proxyData.get(proxy);
-        }
-        while (handlers.size === 0);
+        } while (handlers.size === 0);
 
         for (const [, handler] of handlers) {
             handler.unmappedDescendantChanged();

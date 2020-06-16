@@ -2,6 +2,9 @@ export const anyOtherFields = Symbol('*');
 
 export const extraFields = Symbol('+');
 
+type keysOf<T> = T extends any[] ? number : keyof T;
+type valuesOf<T> = T extends any[] ? T[number] : T[keyof T];
+
 export type FieldMappingFunction<TSource, TMirror> = (
     dest: TMirror,
     source: TSource,
@@ -11,7 +14,7 @@ export type FieldMappingFunction<TSource, TMirror> = (
 // For all other fields, only allow boolean or nested mirroring.
 type AnyOtherMapping<TSource, TMirror> =
     | boolean
-    | FieldMappings<TSource[keyof TSource], TMirror[keyof TMirror]>;
+    | FieldMappings<valuesOf<TSource>, valuesOf<TMirror>>;
 
 export type ExtraFields<TSource, TMirror> = {
     [P in keyof TMirror]?: ExtraField<TSource, TMirror[P]>;
