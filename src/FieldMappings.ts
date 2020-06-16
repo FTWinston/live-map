@@ -2,6 +2,9 @@ export const anyOtherFields = Symbol('*');
 
 export const extraFields = Symbol('+');
 
+// keyof includes functions. That really doesn't suit us when it comes to arrays,
+// as e.g. keyof string[] is complicated, and string[][keyof string[]] is horrific,
+// when we would just want it to be string.
 type keysOf<T> = T extends any[] ? number : keyof T;
 type valuesOf<T> = T extends any[] ? T[number] : T[keyof T];
 
