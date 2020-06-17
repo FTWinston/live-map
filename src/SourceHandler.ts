@@ -73,8 +73,8 @@ export class SourceHandler<TSource, TMirror, TKey>
 
     public unmappedDescendantChanged() {
         for (const [, mirrorHandler] of this.mirrorHandlers) {
-            if (mirrorHandler.afterChange) {
-                mirrorHandler.afterChange();
+            if (mirrorHandler.beforeChange) {
+                mirrorHandler.beforeChange();
             }
         }
 

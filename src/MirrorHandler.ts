@@ -39,7 +39,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
     private readonly anyOtherSet?: FieldOperation<TSource, TMirror>;
     private readonly anyOtherDelete?: FieldOperation<TSource, TMirror>;
 
-    public readonly afterChange?: () => void;
+    public readonly beforeChange?: () => void;
 
     private readonly extraFields?: ExtraFields<TSource, TMirror>;
 
@@ -62,17 +62,17 @@ export class MirrorHandler<TSource, TMirror, TKey> {
 
         if (this.extraFields) {
             if (shouldMap) {
-                this.afterChange = () => {
+                this.beforeChange = () => {
                     this.updateConditionalMapping(shouldMap);
                     this.assignExtraFields(this.extraFields);
                 };
             } else {
-                this.afterChange = () => {
+                this.beforeChange = () => {
                     this.assignExtraFields(this.extraFields);
                 };
             }
         } else if (shouldMap) {
-            this.afterChange = () => {
+            this.beforeChange = () => {
                 this.updateConditionalMapping(shouldMap);
             };
         }
@@ -314,7 +314,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
                     undefined,
                     substituteMirror,
                     this.initialAssignment,
-                    this.afterChange
+                    this.beforeChange
                 );
 
                 if (sourceValue !== childProxy) {
@@ -348,6 +348,8 @@ export class MirrorHandler<TSource, TMirror, TKey> {
     }
 
     public runSetOperation(field: keyof TSource, val: TSource[keyof TSource]) {
+        this.beforeChange?.();
+
         if (this._mirror !== null) {
             this.runOperation(
                 field,
@@ -356,11 +358,11 @@ export class MirrorHandler<TSource, TMirror, TKey> {
                 this.anyOtherSet
             );
         }
-
-        this.afterChange?.();
     }
 
     public runDeleteOperation(field: keyof TSource) {
+        this.beforeChange?.();
+
         if (this._mirror !== null) {
             this.runOperation(
                 field,
@@ -369,8 +371,6 @@ export class MirrorHandler<TSource, TMirror, TKey> {
                 this.anyOtherDelete
             );
         }
-
-        this.afterChange?.();
     }
 
     private runOperation(

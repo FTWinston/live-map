@@ -1,5 +1,6 @@
 import { filterMirror } from './filterMirror';
 import { anyOtherFields, shouldMap } from './FieldMappings';
+import { PatchOperation } from './PatchOperation';
 
 interface Child {
     value: string;
@@ -92,7 +93,73 @@ test('conditionally maps properties when values are modified', () => {
     });
 });
 
-// TODO: same as the above test, but test patches
+test('conditional mapping generates patches', () => {
+    const source: Parent = {
+        a: {
+            value: 'hello',
+        },
+        b: {
+            value: 'goodbye',
+        },
+        c: {
+            value: 'yo',
+        },
+        d: {
+            value: 'later',
+        },
+    };
+
+    const patches: PatchOperation[] = [];
+
+    const { proxy, mirror } = filterMirror<Parent, Parent>(
+        source,
+        {
+            a: {
+                value: true,
+                [shouldMap]: (child) => {
+                    return child.value.indexOf('l') !== -1;
+                },
+            },
+            b: {
+                value: true,
+                [shouldMap]: (child) => child.value.indexOf('l') !== -1,
+            },
+            c: {
+                value: true,
+                [shouldMap]: (child) => child.value.indexOf('l') !== -1,
+            },
+            d: {
+                value: true,
+                [shouldMap]: (child) => child.value.indexOf('l') !== -1,
+            },
+        },
+        (patch) => patches.push(patch)
+    );
+
+    proxy.a.value = 'hey';
+    proxy.b.value = 'farewell';
+    proxy.c.value = 'howdy';
+    proxy.d.value = 'long time no see';
+
+    expect(patches).toEqual([
+        {
+            op: 'remove',
+            path: '/a',
+        },
+        {
+            op: 'add',
+            path: '/b',
+            value: {
+                value: 'farewell',
+            },
+        },
+        {
+            op: 'replace',
+            path: '/d/value',
+            value: 'long time no see',
+        },
+    ]);
+});
 
 test('conditionally maps array entries', () => {
     const source: Child[] = [
