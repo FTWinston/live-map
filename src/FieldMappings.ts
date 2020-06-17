@@ -2,6 +2,8 @@ export const anyOtherFields = Symbol('*');
 
 export const extraFields = Symbol('+');
 
+export const shouldMap = Symbol('?');
+
 // keyof includes functions. That really doesn't suit us when it comes to arrays,
 // as e.g. keyof string[] is complicated, and string[][keyof string[]] is horrific,
 // when we would just want it to be string.
@@ -17,7 +19,7 @@ export type FieldMappingFunction<TSource, TMirror> = (
 // For all other fields, only allow boolean or nested mirroring.
 type AnyOtherMapping<TSource, TMirror> =
     | boolean
-    | FieldMappings<valuesOf<TSource>, valuesOf<TMirror>>;
+    | NonRootFieldMappings<valuesOf<TSource>, valuesOf<TMirror>>;
 
 export type ExtraFields<TSource, TMirror> = {
     [P in keyof TMirror]?: ExtraField<TSource, TMirror[P]>;
@@ -31,7 +33,7 @@ export interface ExtraField<TSource, TValue> {
 export type FieldMappingValue<TSource, TMirror> =
     | boolean
     | keyof TMirror
-    | FieldMappings<valuesOf<TSource>, valuesOf<TMirror>>
+    | NonRootFieldMappings<valuesOf<TSource>, valuesOf<TMirror>>
     | FieldMappingFunction<TSource, TMirror>;
 
 export type FieldMappingsWithoutSymbols<TSource, TMirror> = {
@@ -39,7 +41,7 @@ export type FieldMappingsWithoutSymbols<TSource, TMirror> = {
     [P in Extract<keyof TSource, keyof TMirror>]?:
         | boolean
         | keyof TMirror
-        | FieldMappings<TSource[P], TMirror[P]>
+        | NonRootFieldMappings<TSource[P], TMirror[P]>
         | FieldMappingFunction<TSource, TMirror>;
 } &
     {
@@ -55,4 +57,11 @@ export type FieldMappings<TSource, TMirror> = FieldMappingsWithoutSymbols<
 > & {
     [anyOtherFields]?: AnyOtherMapping<TSource, TMirror>;
     [extraFields]?: ExtraFields<TSource, TMirror>;
+};
+
+export type NonRootFieldMappings<TSource, TMirror> = FieldMappings<
+    TSource,
+    TMirror
+> & {
+    [shouldMap]?: (source: TSource) => boolean;
 };
