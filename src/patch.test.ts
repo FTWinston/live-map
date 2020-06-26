@@ -79,7 +79,7 @@ test('simple filterMirror patch generation', () => {
     ]);
 });
 
-test('bracket notation filterMirror patch generation', () => {
+test('simple bracket notation filterMirror patch generation', () => {
     const source: Record<string, boolean> = {
         prop1: true,
         prop2: true,
@@ -200,6 +200,62 @@ test('nested filterMirror patch generation', () => {
             op: 'replace',
             path: '/child1/prop2',
             value: false,
+        },
+        {
+            op: 'remove',
+            path: '/child1/prop1',
+        },
+    ]);
+});
+
+test('nested bracket notation patch generation', () => {
+    const source: ParentSource = {
+        child1: {
+            prop1: 'hello',
+            prop2: false,
+            prop3: 35,
+            prop4: 'hi',
+        },
+        child2: {
+            prop1: 'wow',
+            prop2: true,
+            prop3: 1,
+            prop4: 'omg',
+        },
+        prop: 'root',
+    };
+
+    const patches: PatchOperation[] = [];
+
+    const { proxy, mirror } = filterMirror<ParentSource, ParentMirror>(
+        source,
+        {
+            child1: {
+                prop1: true,
+                prop2: true,
+            },
+            child2: {
+                prop4: 'prop1',
+            },
+            prop: true,
+        },
+        (patch) => patches.push(patch)
+    );
+
+    proxy['child1'].prop2 = true;
+    proxy['child2'].prop4 = 'hello';
+    delete proxy['child1'].prop1;
+
+    expect(patches).toEqual([
+        {
+            op: 'replace',
+            path: '/child1/prop2',
+            value: true,
+        },
+        {
+            op: 'replace',
+            path: '/child2/prop1',
+            value: 'hello',
         },
         {
             op: 'remove',
