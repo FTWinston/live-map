@@ -79,6 +79,50 @@ test('simple filterMirror patch generation', () => {
     ]);
 });
 
+test('bracket notation filterMirror patch generation', () => {
+    const source: Record<string, boolean> = {
+        prop1: true,
+        prop2: true,
+        prop3: false,
+    };
+
+    const patches: PatchOperation[] = [];
+
+    const { proxy, mirror } = filterMirror<
+        Record<string, boolean>,
+        Record<string, boolean>
+    >(
+        source,
+        {
+            prop1: true,
+            prop2: true,
+            prop3: true,
+        },
+        (patch) => patches.push(patch)
+    );
+
+    proxy.prop1 = false;
+    proxy['prop2'] = false;
+    delete proxy['prop3'];
+
+    expect(patches).toEqual([
+        {
+            op: 'replace',
+            path: '/prop1',
+            value: false,
+        },
+        {
+            op: 'replace',
+            path: '/prop2',
+            value: false,
+        },
+        {
+            op: 'remove',
+            path: '/prop3',
+        },
+    ]);
+});
+
 test('nested filterMirror patch generation', () => {
     const source: ParentSource = {
         child1: {
