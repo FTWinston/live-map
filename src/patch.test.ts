@@ -95,13 +95,13 @@ test('bracket notation filterMirror patch generation', () => {
         source,
         {
             prop1: true,
-            prop2: true,
             prop3: true,
+            [anyOtherFields]: true,
         },
         (patch) => patches.push(patch)
     );
 
-    proxy.prop1 = false;
+    proxy['prop1'] = false;
     proxy['prop2'] = false;
     delete proxy['prop3'];
 
