@@ -1,5 +1,5 @@
 import { filterMirror } from './filterMirror';
-import { anyOtherFields } from './FieldMappings';
+import { anyOtherFields, extraFields } from './FieldMappings';
 import { PatchOperation } from './PatchOperation';
 import { multiFilter } from './multiFilter';
 
@@ -270,6 +270,7 @@ interface Field {
 
 interface Grandparent {
     content: Record<string, Field>;
+    root?: string;
 }
 
 test('patch of named filterMirror child record', () => {
@@ -1161,6 +1162,124 @@ test('patch of "any other" new multiFilter grandchild records', () => {
             op: 'replace',
             path: '/content/b/visibleToSelf',
             value: 'updated private info',
+        },
+    ]);
+});
+
+test('extraFields patch generation', () => {
+    const source: ParentSource = {
+        child1: {
+            prop1: 'hello',
+            prop2: false,
+            prop3: 35,
+        },
+        child2: {
+            prop1: 'wow',
+            prop2: true,
+            prop3: 1,
+        },
+        prop: 'root',
+    };
+
+    const patches: PatchOperation[] = [];
+
+    const { proxy, mirror } = filterMirror<ParentSource, ParentMirror>(
+        source,
+        {
+            child1: {
+                prop1: true,
+                prop2: true,
+            },
+            [extraFields]: {
+                prop: {
+                    getValue: (source) => source.child2.prop1,
+                    getTriggers: (source) => [source.child2.prop1],
+                },
+            },
+        },
+        (patch) => patches.push(patch)
+    );
+
+    proxy.child1.prop2 = true;
+    proxy.child2.prop1 = 'hello';
+    proxy.prop = '';
+
+    expect(mirror).toEqual({
+        child1: {
+            prop1: 'hello',
+            prop2: true,
+        },
+        prop: 'hello',
+    });
+
+    expect(patches).toEqual([
+        {
+            op: 'replace',
+            path: '/child1/prop2',
+            value: true,
+        },
+        {
+            op: 'replace',
+            path: '/prop',
+            value: 'hello',
+        },
+    ]);
+});
+
+test('nested extraFields patch generation', () => {
+    const source: Grandparent = {
+        content: {
+            child1: {
+                field: 'hello',
+            },
+            child2: {
+                field: 'goodbye',
+            },
+        },
+    };
+
+    const patches: PatchOperation[] = [];
+
+    const { proxy, mirror } = filterMirror<Grandparent, Grandparent>(
+        source,
+        {
+            content: {
+                child1: {
+                    field: true,
+                },
+            },
+            [extraFields]: {
+                root: {
+                    getValue: (source) => source.content['child2'].field,
+                    getTriggers: (source) => [source.content['child2'].field],
+                },
+            },
+        },
+        (patch) => patches.push(patch)
+    );
+
+    proxy.content.child1.field = 'hey';
+    proxy.content.child2.field = 'bye';
+
+    expect(mirror).toEqual({
+        content: {
+            child1: {
+                field: 'hey',
+            },
+        },
+        root: 'bye',
+    });
+
+    expect(patches).toEqual([
+        {
+            op: 'replace',
+            path: '/content/child1/field',
+            value: 'hey',
+        },
+        {
+            op: 'replace',
+            path: '/root',
+            value: 'bye',
         },
     ]);
 });
