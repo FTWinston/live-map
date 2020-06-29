@@ -299,7 +299,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
                     return dest[destField];
                 };
 
-                const { proxy: childProxy } = filterMirrorInternal<
+                filterMirrorInternal<
                     TSource[keyof TSource],
                     TMirror[keyof TMirror],
                     TKey
@@ -316,10 +316,6 @@ export class MirrorHandler<TSource, TMirror, TKey> {
                     this.initialAssignment,
                     this.beforeChange
                 );
-
-                if (sourceValue !== childProxy) {
-                    source[field] = childProxy;
-                }
             };
             deleteOperation = (_source, key, dest) => {
                 const destField = (key as unknown) as keyof TMirror;

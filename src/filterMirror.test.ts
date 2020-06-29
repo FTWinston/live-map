@@ -485,8 +485,7 @@ test('maps array changes', () => {
     expect(mirror).toHaveProperty('array');
     expect(mirror.array).toHaveLength(3);
 
-    // TODO: determine if we care that this is THE SAME array rather than a copy?
-    expect(proxy.array).toBe(mirror.array);
+    expect(proxy.array).toEqual(mirror.array);
     expect(source.array).toBe(mirror.array);
 });
 

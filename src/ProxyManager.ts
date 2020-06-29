@@ -1,106 +1,110 @@
 import { ISourceHandler } from './SourceHandler';
 
-export class ProxyManager<TKey> {
-    private readonly proxyData = new Map<
-        object,
-        Map<TKey, ISourceHandler<any>>
-    >();
+interface ProxyInfo<TKey, TSource> {
+    proxy: TSource;
+    handlers: Map<TKey, ISourceHandler<TSource>>;
+    parentInfo?: ProxyInfo<TKey, any>;
+}
 
-    private readonly proxyParents = new Map<object, object>();
+export class ProxyManager<TKey> {
+    private readonly proxyData = new Map<any, ProxyInfo<TKey, any>>();
 
     private createProxy<TSource extends {}>(
         source: TSource
-    ): [TSource, Map<TKey, ISourceHandler<any>>] {
+    ): ProxyInfo<TKey, TSource> {
         const sourceHandlers = new Map<TKey, ISourceHandler<any>>();
 
         const proxy = new Proxy(source, {
+            get: (target, field: keyof TSource) => {
+                const val = target[field];
+                let fieldProxyInfo: ProxyInfo<TKey, any> | undefined;
+
+                if (field !== 'prototype') {
+                    fieldProxyInfo = this.proxyData.get(val);
+
+                    if (!fieldProxyInfo && this.canProxy(val)) {
+                        fieldProxyInfo = this.createProxy(val);
+                        fieldProxyInfo.parentInfo = proxyInfo;
+                    }
+                }
+
+                return fieldProxyInfo ? fieldProxyInfo.proxy : val;
+            },
             set: (target, field: keyof TSource, val) => {
                 this.removeProxy(target[field] as any);
 
-                // Before assigning, replace val (and its descendents) with a proxy, so we can detect any changes.
-                if (this.canProxy(val)) {
-                    [val] = this.createProxy(val);
-                    this.proxyParents.set(val, proxy);
-                }
-
                 target[field] = val;
 
-                for (const [, sourceHandler] of sourceHandlers) {
-                    sourceHandler.setField(field, val);
-                }
-
                 if (sourceHandlers.size === 0) {
-                    this.updateClosestAncestorSourceHandlers(proxy);
+                    const fieldProxyInfo = this.proxyData.get(target);
+                    this.updateClosestAncestorSourceHandlers(fieldProxyInfo);
+                } else {
+                    for (const [, sourceHandler] of sourceHandlers) {
+                        sourceHandler.setField(field, val);
+                    }
                 }
 
                 return true;
             },
             deleteProperty: (target, field: keyof TSource) => {
-                this.removeProxy(target[field] as any);
+                const val = target[field];
+                this.removeProxy(val as any);
 
                 delete target[field];
 
-                for (const [, sourceHandler] of sourceHandlers) {
-                    sourceHandler.deleteField(field);
-                }
-
                 if (sourceHandlers.size === 0) {
-                    this.updateClosestAncestorSourceHandlers(proxy);
+                    const fieldProxyInfo = this.proxyData.get(target);
+                    this.updateClosestAncestorSourceHandlers(fieldProxyInfo);
+                } else {
+                    for (const [, sourceHandler] of sourceHandlers) {
+                        sourceHandler.deleteField(field);
+                    }
                 }
 
                 return true;
             },
         });
 
-        this.proxyData.set(proxy, sourceHandlers);
+        const proxyInfo: ProxyInfo<TKey, TSource> = {
+            proxy,
+            handlers: sourceHandlers,
+        };
 
-        // Recursively call createProxy for all proxiable fields of source, and substitute them.
-        for (const key in source) {
-            let val = source[key];
+        this.proxyData.set(source, proxyInfo);
 
-            if (this.canProxy(val)) {
-                [val] = this.createProxy(val);
-                this.proxyParents.set(val as any, proxy);
-                source[key] = val;
-            }
-        }
-
-        return [proxy, sourceHandlers];
+        return proxyInfo;
     }
 
     public getProxy<TSource extends {}>(
         key: TKey | undefined,
         handler: ISourceHandler<TSource>
     ): TSource {
-        // If source is already a managed proxy, record the new operations and return it.
+        // If source already has a managed proxy, record the new operations and return it.
+        const proxyInfo =
+            this.proxyData.get(handler.source) ??
+            this.createProxy(handler.source);
 
-        let proxy: TSource;
-        let sourceHandlers = this.proxyData.get(handler.source);
+        proxyInfo.handlers.set(key, handler);
 
-        if (sourceHandlers !== undefined) {
-            proxy = handler.source;
-        } else {
-            [proxy, sourceHandlers] = this.createProxy(handler.source);
-        }
-
-        sourceHandlers.set(key, handler);
-
-        return proxy;
+        return proxyInfo.proxy;
     }
 
-    private updateClosestAncestorSourceHandlers(proxy: object) {
-        let handlers: Map<TKey, ISourceHandler<any>>;
-
-        do {
-            proxy = this.proxyParents.get(proxy);
-            if (!proxy) {
-                return;
+    private updateClosestAncestorSourceHandlers(
+        proxyInfo: ProxyInfo<TKey, any>
+    ) {
+        while (true) {
+            if (proxyInfo.handlers.size !== 0) {
+                break;
             }
 
-            handlers = this.proxyData.get(proxy);
-        } while (handlers.size === 0);
+            proxyInfo = proxyInfo.parentInfo;
 
-        for (const [, handler] of handlers) {
+            if (!proxyInfo) {
+                return;
+            }
+        }
+
+        for (const [, handler] of proxyInfo.handlers) {
             handler.unmappedDescendantChanged();
         }
     }
@@ -114,24 +118,24 @@ export class ProxyManager<TKey> {
         return type === 'function' || (type === 'object' && !!object);
     }
 
-    public removeProxy(proxy: object) {
-        if (!this.proxyData.delete(proxy)) {
+    public removeProxy(object: object) {
+        const proxyInfo = this.proxyData.get(object);
+
+        if (!proxyInfo || !this.proxyData.delete(object)) {
             return;
         }
 
-        this.proxyParents.delete(proxy);
-
         // We need to also remove any proxies that were below this one in the hierarchy,
         // because this manager stores data for ALL proxies.
-        for (const key in proxy) {
-            const val = (proxy as any)[key];
+        for (const key in object) {
+            const val = (object as any)[key];
             this.removeProxy(val);
         }
     }
 
     public removeKey(key: TKey) {
-        for (const [, handlersByKey] of this.proxyData) {
-            handlersByKey.delete(key);
+        for (const [, proxyInfo] of this.proxyData) {
+            proxyInfo.handlers.delete(key);
         }
     }
 }
