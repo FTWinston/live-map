@@ -156,12 +156,19 @@ export class MirrorHandler<TSource, TMirror, TKey> {
 
         if (this.extraFields) {
             for (const destField in this.extraFields) {
-                const extraField = this.extraFields[destField];
+                const extraField = this.extraFields[destField]!;
+                const value = extraField.getValue(this.sourceHandler.source);
+
                 const triggers = extraField.getTriggers
                     ? extraField.getTriggers(this.sourceHandler.source).slice()
-                    : undefined;
+                    : [value];
 
-                this.assignExtraField(mirror, destField, extraField, triggers);
+                this.assignExtraField(
+                    mirror,
+                    destField,
+                    value,
+                    triggers
+                );
             }
         }
 
@@ -230,26 +237,47 @@ export class MirrorHandler<TSource, TMirror, TKey> {
         destField: Extract<keyof TMirror, string>,
         extraField: ExtraField<TSource, TMirror[keyof TMirror]>
     ) {
-        const newTriggers = extraField
-            .getTriggers(this.sourceHandler.source)
-            .slice();
+        let newTriggers: any[];
+
+        let loadedValue = false;
+        let value: TMirror[keyof TMirror];
+
+        if (extraField.getTriggers) {
+            newTriggers = extraField
+                .getTriggers(this.sourceHandler.source)
+                .slice();
+        }
+        else {
+            loadedValue = true;
+            value = extraField.getValue(this.sourceHandler.source);
+            newTriggers = [value];
+        }
+
         const oldTriggers = this.triggerSnapshots[destField];
 
         if (this.arraysMatch(newTriggers, oldTriggers)) {
             return;
         }
 
-        this.assignExtraField(this._mirror, destField, extraField, newTriggers);
+        if (!loadedValue) {
+            value = extraField.getValue(this.sourceHandler.source);
+        }
+
+        this.assignExtraField(
+            this.mirror,
+            destField,
+            value!,
+            newTriggers
+        );
     }
 
     private assignExtraField(
         mirror: TMirror,
         destField: keyof TMirror,
-        extraField: ExtraField<TSource, TMirror[keyof TMirror]>,
+        value: TMirror[keyof TMirror],
         triggers: any[]
     ) {
-        const value = extraField.getValue(this.sourceHandler.source);
-        mirror[destField] = value as any;
+        mirror[destField] = value;
         this.triggerSnapshots[destField] = triggers;
     }
 
