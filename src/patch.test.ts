@@ -673,9 +673,9 @@ test('patch of named new multiFilter child records', () => {
 
     const mirror2 = createMirror('b', (patch) => patches2.push(patch));
 
-    proxy.a.visibleToAll = 'updated public info';
-    proxy.b.visibleToAll = 'more updated info';
-    proxy.b.visibleToSelf = 'updated private info';
+    proxy.a!.visibleToAll = 'updated public info';
+    proxy.b!.visibleToAll = 'more updated info';
+    proxy.b!.visibleToSelf = 'updated private info';
 
     expect(patches1).toEqual([
         {

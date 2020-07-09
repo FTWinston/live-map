@@ -35,6 +35,6 @@ export function filterMirrorInternal<
 
     return {
         proxy,
-        mirror,
+        mirror: mirror!,
     };
 }

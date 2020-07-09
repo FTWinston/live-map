@@ -21,7 +21,7 @@ type FieldOperation<TSource, TMirror> = (
 ) => void;
 
 export class MirrorHandler<TSource, TMirror, TKey> {
-    private _mirror: TMirror | null;
+    private _mirror: TMirror | undefined;
 
     public get mirror() {
         return this._mirror;
@@ -53,7 +53,9 @@ export class MirrorHandler<TSource, TMirror, TKey> {
         private readonly sourceHandler: SourceHandler<TSource, TMirror, TKey>,
         mappings: NonRootFieldMappings<TSource, TMirror>,
         private readonly patchCallback?: (operation: PatchOperation) => void,
-        private readonly assignMirror?: (mirror: TMirror) => TMirror,
+        private readonly assignMirror?: (
+            mirror: TMirror | undefined
+        ) => TMirror,
         assignBeforePopulating: boolean = false
     ) {
         // Ensure that afterChange event is set up before parsing mappings.
@@ -64,11 +66,11 @@ export class MirrorHandler<TSource, TMirror, TKey> {
             if (shouldMap) {
                 this.beforeChange = () => {
                     this.updateConditionalMapping(shouldMap);
-                    this.assignExtraFields(this.extraFields);
+                    this.assignExtraFields(this.extraFields!);
                 };
             } else {
                 this.beforeChange = () => {
-                    this.assignExtraFields(this.extraFields);
+                    this.assignExtraFields(this.extraFields!);
                 };
             }
         } else if (shouldMap) {
@@ -100,9 +102,6 @@ export class MirrorHandler<TSource, TMirror, TKey> {
         // Determine anyOtherSet and anyOtherDelete.
         const anyOtherFields = mappings[anyOtherFieldsSymbol];
 
-        let anyOtherSet: FieldOperation<TSource, TMirror> | undefined;
-        let anyOtherDelete: FieldOperation<TSource, TMirror> | undefined;
-
         if (anyOtherFields !== undefined && anyOtherFields !== false) {
             [this.anyOtherSet, this.anyOtherDelete] = this.parseFieldMapping(
                 key,
@@ -113,8 +112,6 @@ export class MirrorHandler<TSource, TMirror, TKey> {
         if (!shouldMap || shouldMap(sourceHandler.source)) {
             this._mirror = this.createMirror(assignBeforePopulating);
             this.previouslyMapped = true;
-        } else {
-            this._mirror = null;
         }
     }
 
@@ -131,7 +128,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
             patcher = new JSONPatcherProxy<TMirror>(mirror, false);
 
             mirror = (patcher.observe(false, (patch: PatchOperation) =>
-                this.patchCallback(this.tidyPatch(patch))
+                this.patchCallback!(this.tidyPatch(patch))
             ) as unknown) as TMirror;
 
             patcher.pause();
@@ -211,7 +208,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
                 this._mirror = this.createMirror(false);
                 // TODO: ensure mirror is added to parent's mirror output
             } else {
-                this._mirror = null;
+                this._mirror = undefined;
 
                 if (this.assignMirror) {
                     this.assignMirror(undefined);
@@ -228,7 +225,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
         }
 
         for (const destField in extraFields) {
-            const extraField = extraFields[destField];
+            const extraField = extraFields[destField]!;
             this.tryAssignExtraField(destField, extraField);
         }
     }
@@ -263,12 +260,14 @@ export class MirrorHandler<TSource, TMirror, TKey> {
             value = extraField.getValue(this.sourceHandler.source);
         }
 
-        this.assignExtraField(
-            this.mirror,
-            destField,
-            value!,
-            newTriggers
-        );
+        if (this._mirror !== undefined) {
+            this.assignExtraField(
+                this._mirror,
+                destField,
+                value!,
+                newTriggers
+            );
+        }
     }
 
     private assignExtraField(
@@ -374,7 +373,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
     public runSetOperation(field: keyof TSource, val: TSource[keyof TSource]) {
         this.beforeChange?.();
 
-        if (this._mirror !== null) {
+        if (this._mirror !== undefined) {
             this.runOperation(
                 field,
                 this._mirror,
@@ -387,7 +386,7 @@ export class MirrorHandler<TSource, TMirror, TKey> {
     public runDeleteOperation(field: keyof TSource) {
         this.beforeChange?.();
 
-        if (this._mirror !== null) {
+        if (this._mirror !== undefined) {
             this.runOperation(
                 field,
                 this._mirror,

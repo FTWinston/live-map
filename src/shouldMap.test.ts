@@ -78,10 +78,10 @@ test('conditionally maps properties when values are modified', () => {
         },
     });
 
-    proxy.a.value = 'hey';
-    proxy.b.value = 'farewell';
-    proxy.c.value = 'howdy';
-    proxy.d.value = 'long time no see';
+    proxy.a!.value = 'hey';
+    proxy.b!.value = 'farewell';
+    proxy.c!.value = 'howdy';
+    proxy.d!.value = 'long time no see';
 
     expect(mirror).toEqual({
         b: {
@@ -136,10 +136,10 @@ test('conditional mapping generates patches', () => {
         (patch) => patches.push(patch)
     );
 
-    proxy.a.value = 'hey';
-    proxy.b.value = 'farewell';
-    proxy.c.value = 'howdy';
-    proxy.d.value = 'long time no see';
+    proxy.a!.value = 'hey';
+    proxy.b!.value = 'farewell';
+    proxy.c!.value = 'howdy';
+    proxy.d!.value = 'long time no see';
 
     expect(patches).toEqual([
         {

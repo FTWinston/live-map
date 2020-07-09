@@ -2,7 +2,7 @@ import { ISourceHandler } from './SourceHandler';
 
 interface ProxyInfo<TKey, TSource> {
     proxy: TSource;
-    handlers: Map<TKey, ISourceHandler<TSource>>;
+    handlers: Map<TKey | undefined, ISourceHandler<TSource>>;
     parentInfo?: ProxyInfo<TKey, any>;
 }
 
@@ -37,7 +37,11 @@ export class ProxyManager<TKey> {
 
                 if (sourceHandlers.size === 0) {
                     const fieldProxyInfo = this.proxyData.get(target);
-                    this.updateClosestAncestorSourceHandlers(fieldProxyInfo);
+                    if (fieldProxyInfo) {
+                        this.updateClosestAncestorSourceHandlers(
+                            fieldProxyInfo
+                        );
+                    }
                 } else {
                     for (const [, sourceHandler] of sourceHandlers) {
                         sourceHandler.setField(field, val);
@@ -54,7 +58,11 @@ export class ProxyManager<TKey> {
 
                 if (sourceHandlers.size === 0) {
                     const fieldProxyInfo = this.proxyData.get(target);
-                    this.updateClosestAncestorSourceHandlers(fieldProxyInfo);
+                    if (fieldProxyInfo) {
+                        this.updateClosestAncestorSourceHandlers(
+                            fieldProxyInfo
+                        );
+                    }
                 } else {
                     for (const [, sourceHandler] of sourceHandlers) {
                         sourceHandler.deleteField(field);
@@ -89,9 +97,9 @@ export class ProxyManager<TKey> {
         return proxyInfo.proxy;
     }
 
-    private updateClosestAncestorSourceHandlers(
-        proxyInfo: ProxyInfo<TKey, any>
-    ) {
+    private updateClosestAncestorSourceHandlers(info: ProxyInfo<TKey, any>) {
+        let proxyInfo: ProxyInfo<TKey, any> | undefined = info;
+
         while (true) {
             if (proxyInfo.handlers.size !== 0) {
                 break;

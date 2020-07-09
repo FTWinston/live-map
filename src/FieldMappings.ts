@@ -8,7 +8,7 @@ export const shouldMap = Symbol('?');
 // as e.g. keyof string[] is complicated, and string[][keyof string[]] is horrific,
 // when we would just want it to be string.
 type keysOf<T> = T extends any[] ? number : keyof T;
-type valuesOf<T> = T extends any[] ? T[number] : T[keyof T];
+type valuesOf<T> = T extends any[] ? T[number] : Exclude<T[keyof T], undefined>;
 
 export type FieldMappingFunction<TSource, TMirror> = (
     dest: TMirror,
@@ -41,7 +41,7 @@ export type FieldMappingsWithoutSymbols<TSource, TMirror> = {
     [P in Extract<keyof TSource, keyof TMirror>]?:
         | boolean
         | keyof TMirror
-        | NonRootFieldMappings<TSource[P], TMirror[P]>
+        | NonRootFieldMappings<Exclude<TSource[P], undefined>, Exclude<TMirror[P], undefined>>
         | FieldMappingFunction<TSource, TMirror>;
 } &
     {

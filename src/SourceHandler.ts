@@ -31,7 +31,7 @@ export class SourceHandler<TSource, TMirror, TKey>
         patchCallback?: (operation: PatchOperation) => void,
         assignMirror?: (mirror: TMirror) => TMirror,
         assignBeforePopulating?: boolean
-    ): TMirror {
+    ): TMirror | undefined {
         const handler = new MirrorHandler<TSource, TMirror, TKey>(
             key,
             this,
