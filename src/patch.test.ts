@@ -1193,7 +1193,6 @@ test('extraFields patch generation', () => {
             [extraFields]: {
                 prop: {
                     getValue: (source) => source.child2.prop1,
-                    getTriggers: (source) => [source.child2.prop1],
                 },
             },
         },
@@ -1251,7 +1250,6 @@ test('nested extraFields patch generation', () => {
             [extraFields]: {
                 root: {
                     getValue: (source) => source.content['child2'].field,
-                    getTriggers: (source) => [source.content['child2'].field],
                 },
             },
         },

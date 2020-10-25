@@ -150,3 +150,39 @@ test("maps array length changes, when array isn't also mapped", () => {
         length: 5,
     });
 });
+
+test('ignores array length changes, when empty trigger array present', () => {
+    const source: ArrayHolder = {
+        array: ['hello', 'goodbye', 'howdy', 'hey', 'hi'],
+    };
+
+    const { proxy, mirror } = filterMirror<ArrayHolder, Counter>(source, {
+        array: {
+            [anyOtherFields]: true,
+        },
+        [extraFields]: {
+            length: {
+                getValue: (source) => source.array.length,
+                getTriggers: () => [],
+            },
+        },
+    });
+
+    expect(proxy).toEqual({
+        array: ['hello', 'goodbye', 'howdy', 'hey', 'hi'],
+    });
+
+    expect(mirror.length).toEqual(5);
+
+    proxy.array.push('yo');
+
+    expect(mirror.length).toEqual(5);
+
+    proxy.array[3] = 'hullo';
+
+    expect(mirror.length).toEqual(5);
+
+    proxy.array.splice(3, 2, 'hidey hey');
+
+    expect(mirror.length).toEqual(5);
+});
