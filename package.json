@@ -1,7 +1,7 @@
 {
-  "name": "filter-mirror",
-  "version": "1.0.0",
-  "description": "Proxy utility for creating live partial copies of objects.",
+  "name": "live-map",
+  "version": "0.1.0",
+  "description": "Map an input to an output, and keep it up-to-date in realtime",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
@@ -14,7 +14,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/FTWinston/filter-mirror.git"
+    "url": "git+https://github.com/FTWinston/live-map.git"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.10.2",
@@ -29,6 +29,7 @@
     "lib/**/*"
   ],
   "dependencies": {
+    "fast-deep-equal": "^3.1.3",
     "jsonpatcherproxy": "git+https://github.com/FTWinston/JSONPatcherProxy.git"
   }
 }

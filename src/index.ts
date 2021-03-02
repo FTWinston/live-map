@@ -1,10 +1,5 @@
-export { filterMirror } from './filterMirror';
-export { multiFilter } from './multiFilter';
-export {
-    anyOtherFields,
-    extraFields,
-    shouldMap,
-    FieldMappings,
-    FieldMappingFunction,
-} from './FieldMappings';
+export { liveMap } from './liveMap';
+export { multiMap } from './multiMap';
+
+export { anyField, MappingFunction } from './MappingFunction';
 export { PatchOperation } from './PatchOperation';

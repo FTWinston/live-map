@@ -1,21 +1,22 @@
-import { ISourceHandler } from './SourceHandler';
+import { IInputHandler } from './InputHandler';
+import { BaseInput } from './MappingFunction';
 
-interface ProxyInfo<TKey, TSource> {
-    proxy: TSource;
-    handlers: Map<TKey | undefined, ISourceHandler<TSource>>;
+interface ProxyInfo<TKey, TInput> {
+    proxy: TInput;
+    inputHandlers: Map<TKey | undefined, IInputHandler<TInput>>;
     parentInfo?: ProxyInfo<TKey, any>;
 }
 
 export class ProxyManager<TKey> {
     private readonly proxyData = new Map<any, ProxyInfo<TKey, any>>();
 
-    private createProxy<TSource extends {}>(
-        source: TSource
-    ): ProxyInfo<TKey, TSource> {
-        const sourceHandlers = new Map<TKey, ISourceHandler<any>>();
+    private createProxy<TInput extends BaseInput>(
+        input: TInput
+    ): ProxyInfo<TKey, TInput> {
+        const inputHandlers = new Map<TKey, IInputHandler<any>>();
 
-        const proxy = new Proxy(source, {
-            get: (target, field: keyof TSource) => {
+        const proxy = new Proxy(input, {
+            get: (target, field: keyof TInput) => {
                 const val = target[field];
                 let fieldProxyInfo: ProxyInfo<TKey, any> | undefined;
 
@@ -28,80 +29,78 @@ export class ProxyManager<TKey> {
                     }
                 }
 
-                return fieldProxyInfo ? fieldProxyInfo.proxy : val;
+                return fieldProxyInfo === undefined
+                    ? val
+                    : fieldProxyInfo.proxy;
             },
-            set: (target, field: keyof TSource, val) => {
+            set: (target, field: keyof TInput, val) => {
                 this.removeProxy(target[field] as any);
 
                 target[field] = val;
 
-                if (sourceHandlers.size === 0) {
-                    const fieldProxyInfo = this.proxyData.get(target);
-                    if (fieldProxyInfo) {
-                        this.updateClosestAncestorSourceHandlers(
-                            fieldProxyInfo
-                        );
-                    }
-                } else {
-                    for (const [, sourceHandler] of sourceHandlers) {
-                        sourceHandler.setField(field, val);
-                    }
-                }
+                this.updateHandlers(inputHandlers, target);
 
                 return true;
             },
-            deleteProperty: (target, field: keyof TSource) => {
+            deleteProperty: (target, field: keyof TInput) => {
                 const val = target[field];
+
                 this.removeProxy(val as any);
 
                 delete target[field];
 
-                if (sourceHandlers.size === 0) {
-                    const fieldProxyInfo = this.proxyData.get(target);
-                    if (fieldProxyInfo) {
-                        this.updateClosestAncestorSourceHandlers(
-                            fieldProxyInfo
-                        );
-                    }
-                } else {
-                    for (const [, sourceHandler] of sourceHandlers) {
-                        sourceHandler.deleteField(field);
-                    }
-                }
+                this.updateHandlers(inputHandlers, target);
 
                 return true;
             },
         });
 
-        const proxyInfo: ProxyInfo<TKey, TSource> = {
+        const proxyInfo: ProxyInfo<TKey, TInput> = {
             proxy,
-            handlers: sourceHandlers,
+            inputHandlers: inputHandlers,
         };
 
-        this.proxyData.set(source, proxyInfo);
+        this.proxyData.set(input, proxyInfo);
 
         return proxyInfo;
     }
 
-    public getProxy<TSource extends {}>(
-        key: TKey | undefined,
-        handler: ISourceHandler<TSource>
-    ): TSource {
-        // If source already has a managed proxy, record the new operations and return it.
-        const proxyInfo =
-            this.proxyData.get(handler.source) ??
-            this.createProxy(handler.source);
+    private updateHandlers<TInput>(
+        inputHandlers: Map<TKey, IInputHandler<any>>,
+        target: TInput
+    ) {
+        if (inputHandlers.size === 0) {
+            const fieldProxyInfo = this.proxyData.get(target);
+            if (fieldProxyInfo) {
+                this.updateClosestAncestorInputHandlers(fieldProxyInfo);
+            }
+        } else {
+            for (const inputHandler of inputHandlers.values()) {
+                inputHandler.update();
+            }
+        }
+    }
 
-        proxyInfo.handlers.set(key, handler);
+    public getProxy<TInput extends BaseInput>(
+        key: TKey | undefined,
+        inputHandler: IInputHandler<TInput>
+    ): TInput {
+        // If input already has a managed proxy, record the new operations and return it.
+        const proxyInfo =
+            this.proxyData.get(inputHandler.input) ??
+            this.createProxy(inputHandler.input);
+
+        proxyInfo.inputHandlers.set(key, inputHandler);
 
         return proxyInfo.proxy;
     }
 
-    private updateClosestAncestorSourceHandlers(info: ProxyInfo<TKey, any>) {
+    // TODO: do we need to keep this?
+    private updateClosestAncestorInputHandlers(info: ProxyInfo<TKey, any>) {
         let proxyInfo: ProxyInfo<TKey, any> | undefined = info;
 
         while (true) {
-            if (proxyInfo.handlers.size !== 0) {
+            if (proxyInfo.inputHandlers.size !== 0) {
                 break;
             }
 
@@ -112,8 +111,8 @@ export class ProxyManager<TKey> {
             }
         }
 
-        for (const [, handler] of proxyInfo.handlers) {
-            handler.unmappedDescendantChanged();
+        for (const handler of proxyInfo.inputHandlers.values()) {
+            handler.descendantChanged();
         }
     }
 
@@ -126,14 +125,14 @@ export class ProxyManager<TKey> {
         return type === 'function' || (type === 'object' && !!object);
     }
 
-    public removeProxy(object: object) {
+    private removeProxy(object: object) {
         const proxyInfo = this.proxyData.get(object);
 
         if (!proxyInfo || !this.proxyData.delete(object)) {
             return;
         }
 
-        // We need to also remove any proxies that were below this one in the hierarchy,
+        // Recursively remove any proxies that were below this one in the hierarchy,
         // because this manager stores data for ALL proxies.
         for (const key in object) {
             const val = (object as any)[key];
@@ -141,9 +140,11 @@ export class ProxyManager<TKey> {
         }
     }
 
+    // TODO: this seems a bit ... excessive if it's looping every proxy.
+    // Could we have a separate map per key, or anything?
     public removeKey(key: TKey) {
-        for (const [, proxyInfo] of this.proxyData) {
-            proxyInfo.handlers.delete(key);
+        for (const proxyInfo of this.proxyData.values()) {
+            proxyInfo.inputHandlers.delete(key);
         }
     }
 }
