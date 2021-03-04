@@ -13,11 +13,19 @@ export function liveMap<TInput extends BaseInput, TOutput extends BaseOutput>(
 } {
     const proxyManager = new ProxyManager<string>();
 
-    return createMapping<TInput, TOutput, string>(
+    const {
+        proxy,
+        output,
+    } = createMapping<TInput, TOutput, string>(
         input,
         mapping,
         '',
         proxyManager,
         patchCallback
     );
+
+    return {
+        proxy,
+        output: output!,
+    };
 }
